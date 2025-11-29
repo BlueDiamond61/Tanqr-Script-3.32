@@ -1,4 +1,6 @@
-This is updated TanqR Scrip by me anyways enjoy loves
+This is updated TanqR Script by me anyways enjoy loves
+I am not thr orginal owner
+Credit  goes to Zyrxek!
 
 -- Ilyy guys (:
-Future changes soon
+Future changes sooon
