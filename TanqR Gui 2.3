@@ -1,204 +1,195 @@
-local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local ScreenGui = Instance.new("ScreenGui")
+local Aimlock = Instance.new("Frame")
+local TANQRSCRIPT = Instance.new("TextLabel")
+local TANQRAIM = Instance.new("TextButton")
+local PurpleTeam = Instance.new("TextButton")
+local ImageLabel = Instance.new("ImageLabel")
+local TextLabel = Instance.new("TextLabel")
+local CloseButton = Instance.new("TextButton")
+local OpenButton = Instance.new("TextButton")
+
 ScreenGui.Name = "TanqrScriptGUI"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = PlayerGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local Aimlock = Instance.new("Frame")
+OpenButton.Name = "OpenButton"
+OpenButton.Parent = ScreenGui
+OpenButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OpenButton.BorderColor3 = Color3.fromRGB(85, 255, 255)
+OpenButton.Position = UDim2.new(0, 10, 0, 10)
+OpenButton.Size = UDim2.new(0, 100, 0, 40)
+OpenButton.Font = Enum.Font.Bangers
+OpenButton.Text = "OPEN"
+OpenButton.TextColor3 = Color3.fromRGB(85, 255, 255)
+OpenButton.TextScaled = true
+OpenButton.TextSize = 14.000
+OpenButton.TextWrapped = true
+OpenButton.Visible = false
+
 Aimlock.Name = "Aimlock"
 Aimlock.Parent = ScreenGui
 Aimlock.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Aimlock.BackgroundTransparency = 0.2
-Aimlock.BorderSizePixel = 0
-Aimlock.Position = UDim2.new(0.034, 0, 0.064, 0)
+Aimlock.BorderColor3 = Color3.fromRGB(85, 255, 255)
+Aimlock.Position = UDim2.new(0.034251675, 0, 0.0638820603, 0)
 Aimlock.Size = UDim2.new(0, 368, 0, 263)
-Aimlock.Active = true
-Aimlock.Draggable = true
-Aimlock.Selectable = true
+Aimlock.Visible = true
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = Aimlock
-
-local TANQRSCRIPT = Instance.new("TextLabel")
 TANQRSCRIPT.Name = "TANQR SCRIPT"
 TANQRSCRIPT.Parent = Aimlock
-TANQRSCRIPT.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TANQRSCRIPT.BorderSizePixel = 0
-TANQRSCRIPT.Position = UDim2.new(0, 0, 0, 0)
-TANQRSCRIPT.Size = UDim2.new(1, 0, 0, 50)
+TANQRSCRIPT.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TANQRSCRIPT.BorderColor3 = Color3.fromRGB(85, 255, 255)
+TANQRSCRIPT.Position = UDim2.new(0, 0, -0.000990283792, 0)
+TANQRSCRIPT.Size = UDim2.new(0, 362, 0, 50)
 TANQRSCRIPT.Font = Enum.Font.Bangers
 TANQRSCRIPT.Text = "Tanqr Script"
 TANQRSCRIPT.TextColor3 = Color3.fromRGB(85, 255, 255)
 TANQRSCRIPT.TextScaled = true
-TANQRSCRIPT.TextSize = 14
+TANQRSCRIPT.TextSize = 14.000
 TANQRSCRIPT.TextWrapped = true
 
-local TANQRAIM = Instance.new("TextButton")
 TANQRAIM.Name = "TANQR AIM"
 TANQRAIM.Parent = Aimlock
-TANQRAIM.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-TANQRAIM.BorderSizePixel = 0
-TANQRAIM.Position = UDim2.new(0.022, 0, 0.28, 0)
-TANQRAIM.Size = UDim2.new(0.44, 0, 0.175, 0)
+TANQRAIM.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TANQRAIM.BorderColor3 = Color3.fromRGB(85, 255, 255)
+TANQRAIM.Position = UDim2.new(0.0221923646, 0, 0.280032873, 0)
+TANQRAIM.Size = UDim2.new(0, 162, 0, 46)
 TANQRAIM.Font = Enum.Font.Bangers
 TANQRAIM.Text = "Tanqr Aim"
 TANQRAIM.TextColor3 = Color3.fromRGB(85, 255, 255)
 TANQRAIM.TextScaled = true
-TANQRAIM.TextSize = 14
+TANQRAIM.TextSize = 14.000
 TANQRAIM.TextWrapped = true
 
-local PurpleTeam = Instance.new("TextButton")
 PurpleTeam.Name = "Purple Team"
 PurpleTeam.Parent = Aimlock
-PurpleTeam.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-PurpleTeam.BorderSizePixel = 0
-PurpleTeam.Position = UDim2.new(0.55, 0, 0.28, 0)
-PurpleTeam.Size = UDim2.new(0.44, 0, 0.175, 0)
+PurpleTeam.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+PurpleTeam.BorderColor3 = Color3.fromRGB(85, 255, 255)
+PurpleTeam.Position = UDim2.new(0.550503433, 0, 0.280032873, 0)
+PurpleTeam.Size = UDim2.new(0, 165, 0, 46)
 PurpleTeam.Font = Enum.Font.Bangers
 PurpleTeam.Text = "Purple Team"
 PurpleTeam.TextColor3 = Color3.fromRGB(85, 255, 255)
 PurpleTeam.TextScaled = true
-PurpleTeam.TextSize = 14
+PurpleTeam.TextSize = 14.000
 PurpleTeam.TextWrapped = true
 
-local ImageLabel = Instance.new("ImageLabel")
 ImageLabel.Parent = Aimlock
 ImageLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-ImageLabel.BackgroundTransparency = 1
-ImageLabel.Position = UDim2.new(0.399, 0, 0.525, 0)
-ImageLabel.Size = UDim2.new(0.2, 0, 0.228, 0)
+ImageLabel.Position = UDim2.new(0.399142921, 0, 0.524728835, 0)
+ImageLabel.Size = UDim2.new(0, 74, 0, 60)
 ImageLabel.Image = "http://www.roblox.com/asset/?id=4761224815"
 
-local TextLabel = Instance.new("TextLabel")
 TextLabel.Parent = Aimlock
-TextLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TextLabel.BorderSizePixel = 0
-TextLabel.Position = UDim2.new(0, 0, 0.808, 0)
-TextLabel.Size = UDim2.new(1, 0, 0.19, 0)
+TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.BorderColor3 = Color3.fromRGB(85, 255, 255)
+TextLabel.Position = UDim2.new(-0.00107441097, 0, 0.808442593, 0)
+TextLabel.Size = UDim2.new(0, 368, 0, 50)
 TextLabel.Font = Enum.Font.Bangers
-TextLabel.Text = "Made BY Zyrxek ON YT"
+TextLabel.Text = "Made BY Golden blue on github"
 TextLabel.TextColor3 = Color3.fromRGB(85, 255, 255)
 TextLabel.TextScaled = true
-TextLabel.TextSize = 14
+TextLabel.TextSize = 14.000
 TextLabel.TextWrapped = true
 
-local aimlockEnabled = false
-local hitboxConnection
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = Aimlock
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Position = UDim2.new(0.9, 0, 0.02, 0)
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Font = Enum.Font.Bangers
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextScaled = true
+CloseButton.TextSize = 14.000
+CloseButton.TextWrapped = true
 
-local function createHitboxes()
-    if hitboxConnection then
-        hitboxConnection:Disconnect()
-    end
-    
-    hitboxConnection = RunService.Heartbeat:Connect(function()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local character = player.Character
-                local hitboxParts = {
-                    character:FindFirstChild("RightUpperLeg"),
-                    character:FindFirstChild("LeftUpperLeg"),
-                    character:FindFirstChild("HeadHB"),
-                    character:FindFirstChild("HumanoidRootPart")
-                }
-                
-                for _, part in pairs(hitboxParts) do
-                    if part then
-                        part.CanCollide = false
-                        part.Transparency = 0.8
-                        part.Size = Vector3.new(13, 13, 13)
-                        
-                        local highlight = part:FindFirstChild("HitboxHighlight") or Instance.new("Highlight")
-                        highlight.Name = "HitboxHighlight"
-                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        highlight.Parent = part
-                    end
-                end
-            end
-        end
-    end)
-end
+Aimlock.Draggable = true
+Aimlock.Active = true
+Aimlock.Selectable = true
 
-local function removeHitboxes()
-    if hitboxConnection then
-        hitboxConnection:Disconnect()
-        hitboxConnection = nil
-    end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Character then
-            local character = player.Character
-            local parts = {
-                character:FindFirstChild("RightUpperLeg"),
-                character:FindFirstChild("LeftUpperLeg"),
-                character:FindFirstChild("HeadHB"),
-                character:FindFirstChild("HumanoidRootPart")
-            }
-            
-            for _, part in pairs(parts) do
-                if part then
-                    part.CanCollide = true
-                    part.Transparency = 0
-                    part.Size = Vector3.new(2, 2, 1)
-                    
-                    local highlight = part:FindFirstChild("HitboxHighlight")
-                    if highlight then
-                        highlight:Destroy()
-                    end
-                end
-            end
+local function getplrsname()
+    for _,v in pairs(game:GetChildren()) do
+        if v.ClassName == "Players" then
+            return v.Name
         end
     end
 end
 
 TANQRAIM.MouseButton1Click:Connect(function()
-    aimlockEnabled = not aimlockEnabled
+    local players = getplrsname()
+    local plr = game[players].LocalPlayer
     
-    if aimlockEnabled then
-        TANQRAIM.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-        TANQRAIM.Text = "Aimlock ON"
-        createHitboxes()
-    else
-        TANQRAIM.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        TANQRAIM.Text = "Tanqr Aim"
-        removeHitboxes()
-    end
+    coroutine.resume(coroutine.create(function()
+        while wait(1) do
+            coroutine.resume(coroutine.create(function()
+                for _,v in pairs(game[players]:GetPlayers()) do
+                    if v.Name ~= plr.Name and v.Character then
+                        local character = v.Character
+                        
+                        if character:FindFirstChild("RightUpperLeg") then
+                            character.RightUpperLeg.CanCollide = false
+                            character.RightUpperLeg.Transparency = 10
+                            character.RightUpperLeg.Size = Vector3.new(13,13,13)
+                        end
+                        
+                        if character:FindFirstChild("LeftUpperLeg") then
+                            character.LeftUpperLeg.CanCollide = false
+                            character.LeftUpperLeg.Transparency = 10
+                            character.LeftUpperLeg.Size = Vector3.new(13,13,13)
+                        end
+                        
+                        if character:FindFirstChild("HeadHB") then
+                            character.HeadHB.CanCollide = false
+                            character.HeadHB.Transparency = 10
+                            character.HeadHB.Size = Vector3.new(13,13,13)
+                        end
+                        
+                        if character:FindFirstChild("HumanoidRootPart") then
+                            character.HumanoidRootPart.CanCollide = false
+                            character.HumanoidRootPart.Transparency = 10
+                            character.HumanoidRootPart.Size = Vector3.new(13,13,13)
+                        end
+                    end
+                end
+            end))
+        end
+    end))
 end)
 
 PurpleTeam.MouseButton1Click:Connect(function()
-    local success, result = pcall(function()
-        return loadstring(game:HttpGet('https://pastebin.com/raw/pyzjWNhk', true))()
-    end)
+    loadstring(game:HttpGet('https://pastebin.com/raw/pyzjWNhk', true))()
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    Aimlock.Visible = false
+    OpenButton.Visible = true
+end)
+
+OpenButton.MouseButton1Click:Connect(function()
+    OpenButton.Visible = false
+    Aimlock.Visible = true
+end)
+
+local function onInputBegan(input, gameProcessed)
+    if gameProcessed then return end
     
-    if not success then
-        warn("Failed to load Purple Team script: " .. tostring(result))
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        if Aimlock.Visible then
+            Aimlock.Visible = false
+            OpenButton.Visible = true
+        else
+            OpenButton.Visible = false
+            Aimlock.Visible = true
+        end
     end
-end)
+end
 
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Parent = Aimlock
-closeButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-closeButton.BorderSizePixel = 0
-closeButton.Position = UDim2.new(0.95, 0, 0.02, 0)
-closeButton.Size = UDim2.new(0.04, 0, 0.08, 0)
-closeButton.Font = Enum.Font.SourceSansBold
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextScaled = true
-
-closeButton.MouseButton1Click:Connect(function()
-    removeHitboxes()
-    ScreenGui:Destroy()
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    if player == LocalPlayer then
-        removeHitboxes()
-    end
-end)
+UserInputService.InputBegan:Connect(onInputBegan)
