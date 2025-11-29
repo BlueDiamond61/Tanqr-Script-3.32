@@ -3,7 +3,7 @@
 ]]
 -- Gui to Lua
 -- Version: 3.3
-
+--Mafe By ??/
 -- Instances:
 
 local Players = game:GetService("Players")
@@ -147,4 +147,5 @@ Aimlock.InputChanged:Connect(function(input)
 		)
 	end
 end)
+
 
