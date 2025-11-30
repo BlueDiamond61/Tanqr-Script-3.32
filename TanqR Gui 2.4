@@ -1,13 +1,7 @@
---Improvements
--- Fixed Bugs, Added settings, Shaders
--- Gui to Lua
--- Version: 3.4
--- Instances:
-
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -17,332 +11,209 @@ ScreenGui.Name = "TanqrScriptGUI"
 ScreenGui.Parent = PlayerGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local function createElement(className, props)
-    local element = Instance.new(className)
-    for prop, value in pairs(props) do
-        if prop ~= "Parent" then
-            element[prop] = value
-        end
-    end
-    element.Parent = props.Parent
-    return element
+local function createFrame(name, size, pos, visible)
+    local frame = Instance.new("Frame")
+    frame.Name = name
+    frame.Parent = ScreenGui
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    frame.Position = pos
+    frame.Size = size
+    frame.Visible = visible
+    frame.Draggable = true
+    frame.Active = true
+    frame.Selectable = true
+    return frame
 end
 
-local OpenButton = createElement("TextButton", {
-    Name = "OpenButton",
-    Parent = ScreenGui,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0, 10, 0, 10),
-    Size = UDim2.new(0, 100, 0, 40),
-    Font = Enum.Font.Bangers,
-    Text = "OPEN",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true,
-    Visible = false
-})
+local function createButton(name, parent, size, pos, text)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Parent = parent
+    button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    button.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    button.Position = pos
+    button.Size = size
+    button.Font = Enum.Font.Bangers
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(85, 255, 255)
+    button.TextScaled = true
+    button.TextSize = 14
+    button.TextWrapped = true
+    return button
+end
 
-local Aimlock = createElement("Frame", {
-    Name = "Aimlock",
-    Parent = ScreenGui,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0.034, 0, 0.064, 0),
-    Size = UDim2.new(0, 368, 0, 263),
-    Draggable = true,
-    Active = true,
-    Selectable = true
-})
+local function createLabel(name, parent, size, pos, text)
+    local label = Instance.new("TextLabel")
+    label.Name = name
+    label.Parent = parent
+    label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    label.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    label.Position = pos
+    label.Size = size
+    label.Font = Enum.Font.Bangers
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(85, 255, 255)
+    label.TextScaled = true
+    label.TextSize = 14
+    label.TextWrapped = true
+    return label
+end
 
-createElement("TextLabel", {
-    Name = "TANQR SCRIPT",
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0, 0, -0.001, 0),
-    Size = UDim2.new(0, 362, 0, 50),
-    Font = Enum.Font.Bangers,
-    Text = "Tanqr Script",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
+local OpenButton = createButton("OpenButton", ScreenGui, UDim2.new(0, 100, 0, 40), UDim2.new(0, 10, 0, 10), "OPEN")
+OpenButton.Visible = false
 
-local TANQRAIM = createElement("TextButton", {
-    Name = "TANQR AIM",
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0.022, 0, 0.28, 0),
-    Size = UDim2.new(0, 162, 0, 46),
-    Font = Enum.Font.Bangers,
-    Text = "Tanqr Aim",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
+local Aimlock = createFrame("Aimlock", UDim2.new(0, 368, 0, 263), UDim2.new(0.034, 0, 0.064, 0), true)
+createLabel("TANQR SCRIPT", Aimlock, UDim2.new(0, 362, 0, 50), UDim2.new(0, 0, -0.001, 0), "Tanqr Script")
+local TANQRAIM = createButton("TANQR AIM", Aimlock, UDim2.new(0, 162, 0, 46), UDim2.new(0.022, 0, 0.28, 0), "Tanqr Aim")
+local PurpleTeam = createButton("Purple Team", Aimlock, UDim2.new(0, 165, 0, 46), UDim2.new(0.55, 0, 0.28, 0), "Purple Team")
+local SettingsButton = createButton("SettingsButton", Aimlock, UDim2.new(0, 162, 0, 46), UDim2.new(0.022, 0, 0.5, 0), "Settings")
+local AntiLagButton = createButton("AntiLagButton", Aimlock, UDim2.new(0, 162, 0, 46), UDim2.new(0.55, 0, 0.5, 0), "Anti Lag")
 
-local PurpleTeam = createElement("TextButton", {
-    Name = "Purple Team",
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0.551, 0, 0.28, 0),
-    Size = UDim2.new(0, 165, 0, 46),
-    Font = Enum.Font.Bangers,
-    Text = "Purple Team",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
+local ImageLabel = Instance.new("ImageLabel")
+ImageLabel.Parent = Aimlock
+ImageLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ImageLabel.Position = UDim2.new(0.399, 0, 0.7, 0)
+ImageLabel.Size = UDim2.new(0, 74, 0, 60)
+ImageLabel.Image = "http://www.roblox.com/asset/?id=4761224815"
 
-local SettingsButton = createElement("TextButton", {
-    Name = "Settings",
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0.022, 0, 0.45, 0),
-    Size = UDim2.new(0, 350, 0, 46),
-    Font = Enum.Font.Bangers,
-    Text = "Settings",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
+createLabel("TextLabel", Aimlock, UDim2.new(0, 368, 0, 50), UDim2.new(-0.001, 0, 0.808, 0), "Made BY Golden blue on github")
 
-local SettingsFrame = createElement("Frame", {
-    Name = "SettingsFrame",
-    Parent = ScreenGui,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0.5, -150, 0.5, -100),
-    Size = UDim2.new(0, 300, 0, 200),
-    Visible = false,
-    Draggable = true,
-    Active = true,
-    Selectable = true
-})
+local CloseButton = createButton("CloseButton", Aimlock, UDim2.new(0, 25, 0, 25), UDim2.new(0.9, 0, 0.02, 0), "X")
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-createElement("TextLabel", {
-    Name = "SettingsTitle",
-    Parent = SettingsFrame,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Size = UDim2.new(1, 0, 0, 40),
-    Font = Enum.Font.Bangers,
-    Text = "Settings",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
+local SettingsFrame = createFrame("SettingsFrame", UDim2.new(0, 368, 0, 263), UDim2.new(0.034, 0, 0.064, 0), false)
+createLabel("SettingsTitle", SettingsFrame, UDim2.new(0, 362, 0, 50), UDim2.new(0, 0, -0.001, 0), "Settings")
+local ShadersButton = createButton("ShadersButton", SettingsFrame, UDim2.new(0, 162, 0, 46), UDim2.new(0.022, 0, 0.28, 0), "Toggle Shaders")
 
-local ShadersToggle = createElement("TextButton", {
-    Name = "ShadersToggle",
-    Parent = SettingsFrame,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(0.1, 0, 0.3, 0),
-    Size = UDim2.new(0, 240, 0, 40),
-    Font = Enum.Font.Bangers,
-    Text = "Shaders: OFF",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
+local CloseSettingsButton = createButton("CloseSettingsButton", SettingsFrame, UDim2.new(0, 25, 0, 25), UDim2.new(0.9, 0, 0.02, 0), "X")
+CloseSettingsButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseSettingsButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+CloseSettingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-local CloseSettings = createElement("TextButton", {
-    Name = "CloseSettings",
-    Parent = SettingsFrame,
-    BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-    BorderColor3 = Color3.fromRGB(255, 255, 255),
-    Position = UDim2.new(0.9, 0, 0.02, 0),
-    Size = UDim2.new(0, 25, 0, 25),
-    Font = Enum.Font.Bangers,
-    Text = "X",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
-
-createElement("ImageLabel", {
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-    Position = UDim2.new(0.399, 0, 0.525, 0),
-    Size = UDim2.new(0, 74, 0, 60),
-    Image = "http://www.roblox.com/asset/?id=4761224815"
-})
-
-createElement("TextLabel", {
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    BorderColor3 = Color3.fromRGB(85, 255, 255),
-    Position = UDim2.new(-0.001, 0, 0.808, 0),
-    Size = UDim2.new(0, 368, 0, 50),
-    Font = Enum.Font.Bangers,
-    Text = "Made BY Golden blue on github",
-    TextColor3 = Color3.fromRGB(85, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
-
-local CloseButton = createElement("TextButton", {
-    Name = "CloseButton",
-    Parent = Aimlock,
-    BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-    BorderColor3 = Color3.fromRGB(255, 255, 255),
-    Position = UDim2.new(0.9, 0, 0.02, 0),
-    Size = UDim2.new(0, 25, 0, 25),
-    Font = Enum.Font.Bangers,
-    Text = "X",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    TextScaled = true,
-    TextSize = 14,
-    TextWrapped = true
-})
-
-local ShadersEnabled = false
+local shadersEnabled = false
+local antiLagEnabled = false
 
 local function toggleShaders()
-    ShadersEnabled = not ShadersEnabled
-    
-    if ShadersEnabled then
-        ShadersToggle.Text = "Shaders: ON"
-        ShadersToggle.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-        
-        local atmosphere = Instance.new("Atmosphere")
-        atmosphere.Density = 0.5
-        atmosphere.Offset = 0.1
-        atmosphere.Color = Color3.fromRGB(100, 100, 150)
-        atmosphere.Decay = Color3.fromRGB(80, 80, 120)
-        atmosphere.Glare = 0
-        atmosphere.Haze = 0.3
-        atmosphere.Parent = Lighting
-        
-        local bloom = Instance.new("BloomEffect")
-        bloom.Intensity = 0.05
-        bloom.Size = 32
-        bloom.Threshold = 1.5
-        bloom.Parent = Lighting
-        
-        local colorCorrection = Instance.new("ColorCorrectionEffect")
-        colorCorrection.Brightness = -0.1
-        colorCorrection.Contrast = -0.2
-        colorCorrection.Saturation = -0.4
-        colorCorrection.TintColor = Color3.fromRGB(150, 150, 200)
-        colorCorrection.Parent = Lighting
-        
-        local sunRays = Instance.new("SunRaysEffect")
-        sunRays.Intensity = 0.005
-        sunRays.Spread = 0.8
-        sunRays.Parent = Lighting
-    else
-        ShadersToggle.Text = "Shaders: OFF"
-        ShadersToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        
-        for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("PostEffect") or effect:IsA("Atmosphere") then
-                effect:Destroy()
+    if shadersEnabled then
+        Lighting.Ambient = Color3.fromRGB(0.5, 0.5, 0.5)
+        Lighting.Brightness = 1
+        Lighting.OutdoorAmbient = Color3.fromRGB(0.5, 0.5, 0.5)
+        for _,v in pairs(Lighting:GetChildren()) do
+            if string.find(v.Name, "TanqrShaders") then
+                v:Destroy()
             end
         end
+        shadersEnabled = false
+        ShadersButton.Text = "Shaders: OFF"
+        ShadersButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        Lighting.Ambient = Color3.fromRGB(30, 30, 30)
+        Lighting.Brightness = 1.5
+        Lighting.OutdoorAmbient = Color3.fromRGB(40, 40, 40)
+        local colorCorrection = Instance.new("ColorCorrectionEffect")
+        colorCorrection.Name = "TanqrShaders_ColorCorrection"
+        colorCorrection.Brightness = -0.1
+        colorCorrection.Contrast = 0.1
+        colorCorrection.Saturation = -0.2
+        colorCorrection.TintColor = Color3.fromRGB(200, 200, 255)
+        colorCorrection.Parent = Lighting
+        local bloom = Instance.new("BloomEffect")
+        bloom.Name = "TanqrShaders_Bloom"
+        bloom.Intensity = 0.3
+        bloom.Threshold = 0.7
+        bloom.Size = 24
+        bloom.Parent = Lighting
+        shadersEnabled = true
+        ShadersButton.Text = "Shaders: ON"
+        ShadersButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
     end
 end
 
-local AimlockEnabled = false
-local Target = nil
-local Mouse = LocalPlayer:GetMouse()
+local function toggleAntiLag()
+    if antiLagEnabled then
+        RunService:Set3dRenderingEnabled(true)
+        settings().Rendering.QualityLevel = 1
+        for _,v in pairs(game:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+                v.Enabled = true
+            end
+        end
+        antiLagEnabled = false
+        AntiLagButton.Text = "Anti Lag: OFF"
+        AntiLagButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        RunService:Set3dRenderingEnabled(false)
+        settings().Rendering.QualityLevel = 1
+        for _,v in pairs(game:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+                v.Enabled = false
+            end
+            if v:IsA("BasePart") and v.Material == Enum.Material.Plastic then
+                v.Material = Enum.Material.SmoothPlastic
+            end
+        end
+        game:GetService("Lighting").GlobalShadows = false
+        game:GetService("Lighting").FogEnd = 9e9
+        sethiddenproperty(game:GetService("Lighting"), "Technology", 2)
+        antiLagEnabled = true
+        AntiLagButton.Text = "Anti Lag: ON"
+        AntiLagButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+    end
+end
 
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    local localCharacter = LocalPlayer.Character
-    local localRoot = localCharacter and localCharacter:FindFirstChild("HumanoidRootPart")
-    
-    if not localRoot then return nil end
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            
-            if humanoid and humanoid.Health > 0 and rootPart then
-                local distance = (localRoot.Position - rootPart.Position).Magnitude
-                if distance < shortestDistance then
-                    shortestDistance = distance
-                    closestPlayer = player
+TANQRAIM.MouseButton1Click:Connect(function()
+    local players = game.Players
+    local plr = players.LocalPlayer
+    while wait(1) do
+        for _,v in pairs(players:GetPlayers()) do
+            if v ~= plr and v.Character then
+                local char = v.Character
+                for _,part in pairs({"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}) do
+                    if char:FindFirstChild(part) then
+                        char[part].CanCollide = false
+                        char[part].Transparency = 10
+                        char[part].Size = Vector3.new(13,13,13)
+                    end
                 end
             end
         end
     end
-    
-    return closestPlayer
-end
-
-local function aimAtTarget()
-    if not AimlockEnabled or not Target then return end
-    
-    local targetCharacter = Target.Character
-    local localCharacter = LocalPlayer.Character
-    
-    if not targetCharacter or not localCharacter then return end
-    
-    local targetHead = targetCharacter:FindFirstChild("Head")
-    local localHead = localCharacter:FindFirstChild("Head")
-    
-    if targetHead and localHead then
-        local camera = workspace.CurrentCamera
-        camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-    end
-end
-
-local function toggleAimlock()
-    AimlockEnabled = not AimlockEnabled
-    
-    if AimlockEnabled then
-        Target = getClosestPlayer()
-        TANQRAIM.Text = "Aimlock: ON"
-        TANQRAIM.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-        
-        RunService:BindToRenderStep("Aimlock", Enum.RenderPriority.Input.Value, aimAtTarget)
-    else
-        TANQRAIM.Text = "Tanqr Aim"
-        TANQRAIM.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        RunService:UnbindFromRenderStep("Aimlock")
-    end
-end
-
-TANQRAIM.MouseButton1Click:Connect(toggleAimlock)
+end)
 
 PurpleTeam.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet('https://pastebin.com/raw/pyzjWNhk', true))()
 end)
 
+AntiLagButton.MouseButton1Click:Connect(toggleAntiLag)
+
+CloseButton.MouseButton1Click:Connect(function()
+    Aimlock.Visible = false
+    OpenButton.Visible = true
+end)
+
+OpenButton.MouseButton1Click:Connect(function()
+    OpenButton.Visible = false
+    Aimlock.Visible = true
+end)
+
 SettingsButton.MouseButton1Click:Connect(function()
+    Aimlock.Visible = false
     SettingsFrame.Visible = true
 end)
 
-ShadersToggle.MouseButton1Click:Connect(toggleShaders)
-CloseSettings.MouseButton1Click:Connect(function() SettingsFrame.Visible = false end)
-CloseButton.MouseButton1Click:Connect(function() Aimlock.Visible = false OpenButton.Visible = true end)
-OpenButton.MouseButton1Click:Connect(function() OpenButton.Visible = false Aimlock.Visible = true end)
+CloseSettingsButton.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = false
+    Aimlock.Visible = true
+end)
+
+ShadersButton.MouseButton1Click:Connect(toggleShaders)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.RightControl then
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
         Aimlock.Visible = not Aimlock.Visible
         OpenButton.Visible = not Aimlock.Visible
-    elseif input.KeyCode == Enum.KeyCode.Q and AimlockEnabled then
-        Target = getClosestPlayer()
     end
 end)
