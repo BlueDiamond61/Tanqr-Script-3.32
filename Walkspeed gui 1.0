@@ -1,0 +1,273 @@
+-- WalkSpeed GUI v1.0 Fixed
+--========================--
+
+local KEY = "WC$552"
+local DEFAULT_SPEED = 16
+local MAX_SAFE_SPEED = 120
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Variables
+local humanoid
+local keyAccepted = false
+local antiFling = true
+local softLimit = true
+local espEnabled = false
+local flyEnabled = false
+local smoothingFactor = 10
+local currentTargetSpeed = DEFAULT_SPEED
+
+-- Fly
+local flying = false
+local flySpeed = 50
+local flyVelocity = Vector3.new(0,0,0)
+
+-- ESP Storage
+local ESPBoxes = {}
+
+--========================--
+-- Utility Functions
+--========================--
+local function getHumanoid()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("Humanoid")
+end
+
+humanoid = getHumanoid()
+LocalPlayer.CharacterAdded:Connect(function()
+    humanoid = getHumanoid()
+    humanoid.WalkSpeed = currentTargetSpeed
+end)
+
+local function makeUICorner(p, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0,r or 6)
+    c.Parent = p
+end
+
+local function createButton(parent, y, text, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-40,0,28)
+    b.Position = UDim2.new(0,20,0,y)
+    b.BackgroundColor3 = color or Color3.fromRGB(50,50,50)
+    b.Text = text
+    b.TextScaled = true
+    b.Font = Enum.Font.GothamSemibold
+    b.TextColor3 = Color3.fromRGB(245,245,245)
+    makeUICorner(b,8)
+    b.MouseEnter:Connect(function() b.BackgroundColor3 = Color3.fromRGB(80,80,80) end)
+    b.MouseLeave:Connect(function() b.BackgroundColor3 = color or Color3.fromRGB(50,50,50) end)
+    b.Parent = parent
+    return b
+end
+
+--========================--
+-- GUI Setup
+--========================--
+local gui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+gui.ResetOnSpawn = false
+
+-- Loading Screen
+local loadingFrame = Instance.new("Frame", gui)
+loadingFrame.Size = UDim2.new(1,0,1,0)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+
+local playButton = createButton(loadingFrame, 0, "PLAY", Color3.fromRGB(50,150,255))
+playButton.Position = UDim2.new(0.5,-70,0.5,-20)
+playButton.Size = UDim2.new(0,140,0,40)
+
+local keyFrame = Instance.new("Frame", gui)
+keyFrame.Size = UDim2.new(0,280,0,150)
+keyFrame.Position = UDim2.new(0.5,-140,0.45,-75)
+keyFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+keyFrame.Visible = false
+makeUICorner(keyFrame,12)
+
+local keyBox = Instance.new("TextBox", keyFrame)
+keyBox.Size = UDim2.new(1,-40,0,32)
+keyBox.Position = UDim2.new(0,20,0,50)
+keyBox.BackgroundColor3 = Color3.fromRGB(60,60,60)
+keyBox.PlaceholderText = "••••••"
+keyBox.TextColor3 = Color3.fromRGB(245,245,245)
+keyBox.Font = Enum.Font.GothamSemibold
+keyBox.TextScaled = true
+makeUICorner(keyBox,8)
+
+local submitBtn = createButton(keyFrame,92,"Unlock")
+local keyFeedback = Instance.new("TextLabel", keyFrame)
+keyFeedback.Size = UDim2.new(1,-30,0,18)
+keyFeedback.Position = UDim2.new(0,15,0,130)
+keyFeedback.BackgroundTransparency = 1
+keyFeedback.TextScaled = true
+keyFeedback.TextColor3 = Color3.fromRGB(255,100,100)
+keyFeedback.Font = Enum.Font.GothamSemibold
+
+playButton.MouseButton1Click:Connect(function()
+    loadingFrame:Destroy()
+    keyFrame.Visible = true
+end)
+
+-- Main GUI
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0,300,0,300)
+mainFrame.Position = UDim2.new(0.5,-150,0.4,-150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(60,60,60)
+mainFrame.Visible = false
+makeUICorner(mainFrame,12)
+
+local speedBox = Instance.new("TextBox", mainFrame)
+speedBox.Size = UDim2.new(1,-40,0,28)
+speedBox.Position = UDim2.new(0,20,0,45)
+speedBox.BackgroundColor3 = Color3.fromRGB(80,80,80)
+speedBox.PlaceholderText = "Enter speed"
+speedBox.TextColor3 = Color3.new(1,1,1)
+speedBox.Font = Enum.Font.GothamSemibold
+speedBox.TextScaled = true
+makeUICorner(speedBox,8)
+
+local applySpeed = createButton(mainFrame,80,"Apply Speed")
+local resetSpeed = createButton(mainFrame,120,"Reset Speed")
+local settingsBtn = createButton(mainFrame,160,"Settings")
+
+-- Settings GUI
+local settingsFrame = Instance.new("Frame", gui)
+settingsFrame.Size = UDim2.new(0,260,0,220)
+settingsFrame.Position = mainFrame.Position
+settingsFrame.BackgroundColor3 = Color3.fromRGB(70,70,70)
+settingsFrame.Visible = false
+makeUICorner(settingsFrame,12)
+
+local antiBtn = createButton(settingsFrame,50,"Anti-Fling: ON")
+local softBtn = createButton(settingsFrame,90,"Soft Limit: ON")
+local espBtn = createButton(settingsFrame,130,"ESP: OFF")
+local flyBtn = createButton(settingsFrame,170,"Fly: OFF")
+local backBtn = createButton(settingsFrame,200,"Back")
+
+--========================--
+-- Logic
+--========================--
+submitBtn.MouseButton1Click:Connect(function()
+    if keyBox.Text == KEY then
+        keyFeedback.TextColor3 = Color3.fromRGB(0,255,0)
+        keyFeedback.Text = "Key Accepted!"
+        keyFrame.Visible = false
+        mainFrame.Visible = true
+        keyAccepted = true
+    else
+        keyFeedback.TextColor3 = Color3.fromRGB(255,50,50)
+        keyFeedback.Text = "Wrong Key!"
+    end
+end)
+
+applySpeed.MouseButton1Click:Connect(function()
+    local v = tonumber(speedBox.Text)
+    if not v then return end
+    currentTargetSpeed = softLimit and math.clamp(v,1,MAX_SAFE_SPEED) or v
+end)
+
+resetSpeed.MouseButton1Click:Connect(function()
+    currentTargetSpeed = DEFAULT_SPEED
+end)
+
+settingsBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    settingsFrame.Visible = true
+end)
+
+backBtn.MouseButton1Click:Connect(function()
+    settingsFrame.Visible = false
+    mainFrame.Visible = true
+end)
+
+antiBtn.MouseButton1Click:Connect(function()
+    antiFling = not antiFling
+    antiBtn.Text = "Anti-Fling: "..(antiFling and "ON" or "OFF")
+end)
+
+softBtn.MouseButton1Click:Connect(function()
+    softLimit = not softLimit
+    softBtn.Text = "Soft Limit: "..(softLimit and "ON" or "OFF")
+end)
+
+espBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espBtn.Text = "ESP: "..(espEnabled and "ON" or "OFF")
+end)
+
+flyBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    flyBtn.Text = "Fly: "..(flyEnabled and "ON" or "OFF")
+    flying = flyEnabled
+end)
+
+-- Smooth WalkSpeed + Fly + ESP
+RunService.Heartbeat:Connect(function(dt)
+    if not keyAccepted or not humanoid then return end
+
+    -- Smooth speed
+    local diff = currentTargetSpeed - humanoid.WalkSpeed
+    humanoid.WalkSpeed = humanoid.WalkSpeed + diff*math.clamp(dt*smoothingFactor,0,1)
+
+    -- Anti-Fling
+    if antiFling then
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root and root.Velocity.Magnitude > 150 then
+            root.Velocity = root.Velocity.Unit*150
+        end
+    end
+
+    -- Fly
+    if flying and LocalPlayer.Character then
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            flyVelocity = Vector3.new()
+            if UIS:IsKeyDown(Enum.KeyCode.W) then flyVelocity += workspace.CurrentCamera.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then flyVelocity -= workspace.CurrentCamera.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then flyVelocity -= workspace.CurrentCamera.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then flyVelocity += workspace.CurrentCamera.CFrame.RightVector end
+            if flyVelocity.Magnitude > 0 then
+                root.Velocity = flyVelocity.Unit * flySpeed
+            else
+                root.Velocity = Vector3.new(0,root.Velocity.Y,0)
+            end
+        end
+    end
+
+    -- ESP
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if espEnabled then
+                if not ESPBoxes[plr] then
+                    local box = Instance.new("BillboardGui")
+                    box.Size = UDim2.new(0,50,0,50)
+                    box.Adornee = plr.Character.HumanoidRootPart
+                    box.AlwaysOnTop = true
+                    local f = Instance.new("Frame",box)
+                    f.Size = UDim2.new(1,0,1,0)
+                    f.BackgroundColor3 = Color3.fromRGB(255,50,50)
+                    f.BorderSizePixel = 1
+                    makeUICorner(f,4)
+                    box.Parent = gui
+                    ESPBoxes[plr] = box
+                end
+            else
+                if ESPBoxes[plr] then
+                    ESPBoxes[plr]:Destroy()
+                    ESPBoxes[plr] = nil
+                end
+            end
+        end
+    end
+end)
+
+-- GUI Toggle
+UIS.InputBegan:Connect(function(input,gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        mainFrame.Visible = not mainFrame.Visible
+        settingsFrame.Visible = false
+    end
+end)
