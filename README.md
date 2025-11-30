@@ -19,4 +19,7 @@ unless you want your screen to be white...
 -  Improved Aim system
 - And other stuff
 - I Might make some changes on this soon
-   - Enjoy Love you guys❤️
+   - So yeah
+
+So anyways enjoy the gui love u guys❤️
+
