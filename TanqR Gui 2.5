@@ -1,13 +1,10 @@
 -- Gui to Lua
--- Version: 3.4
-
--- Instances:
+-- Version: 3.5 (New
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
-
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -20,7 +17,7 @@ local function createFrame(name, size, pos, visible)
     local frame = Instance.new("Frame")
     frame.Name = name
     frame.Parent = ScreenGui
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     frame.BorderColor3 = Color3.fromRGB(85, 255, 255)
     frame.Position = pos
     frame.Size = size
@@ -28,6 +25,7 @@ local function createFrame(name, size, pos, visible)
     frame.Draggable = true
     frame.Active = true
     frame.Selectable = true
+    frame.BackgroundTransparency = 0.1
     return frame
 end
 
@@ -45,6 +43,7 @@ local function createButton(name, parent, size, pos, text)
     button.TextScaled = true
     button.TextSize = 14
     button.TextWrapped = true
+    button.AutoButtonColor = true
     return button
 end
 
@@ -62,6 +61,7 @@ local function createLabel(name, parent, size, pos, text)
     label.TextScaled = true
     label.TextSize = 14
     label.TextWrapped = true
+    label.BackgroundTransparency = 0.2
     return label
 end
 
@@ -92,6 +92,7 @@ CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 local SettingsFrame = createFrame("SettingsFrame", UDim2.new(0, 368, 0, 263), UDim2.new(0.034, 0, 0.064, 0), false)
 createLabel("SettingsTitle", SettingsFrame, UDim2.new(0, 362, 0, 50), UDim2.new(0, 0, -0.001, 0), "Settings")
 local ShadersButton = createButton("ShadersButton", SettingsFrame, UDim2.new(0, 162, 0, 46), UDim2.new(0.022, 0, 0.28, 0), "Toggle Shaders")
+local ESPButton = createButton("ESPButton", SettingsFrame, UDim2.new(0, 162, 0, 46), UDim2.new(0.55, 0, 0.28, 0), "ESP Name: OFF")
 
 local CloseSettingsButton = createButton("CloseSettingsButton", SettingsFrame, UDim2.new(0, 25, 0, 25), UDim2.new(0.9, 0, 0.02, 0), "X")
 CloseSettingsButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -100,12 +101,14 @@ CloseSettingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local shadersEnabled = false
 local antiLagEnabled = false
+local espEnabled = false
+local espTags = {}
 
 local function toggleShaders()
     if shadersEnabled then
-        Lighting.Ambient = Color3.fromRGB(0.5, 0.5, 0.5)
+        Lighting.Ambient = Color3.fromRGB(128, 128, 128)
         Lighting.Brightness = 1
-        Lighting.OutdoorAmbient = Color3.fromRGB(0.5, 0.5, 0.5)
+        Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
         for _,v in pairs(Lighting:GetChildren()) do
             if string.find(v.Name, "TanqrShaders") then
                 v:Destroy()
@@ -140,18 +143,20 @@ end
 local function toggleAntiLag()
     if antiLagEnabled then
         RunService:Set3dRenderingEnabled(true)
-        settings().Rendering.QualityLevel = 1
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         for _,v in pairs(game:GetDescendants()) do
             if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
                 v.Enabled = true
             end
         end
+        Lighting.GlobalShadows = true
+        Lighting.FogEnd = 1000
         antiLagEnabled = false
         AntiLagButton.Text = "Anti Lag: OFF"
         AntiLagButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     else
-        RunService:Set3dRenderingEnabled(false)
-        settings().Rendering.QualityLevel = 1
+        RunService:Set3dRenderingEnabled(true)
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         for _,v in pairs(game:GetDescendants()) do
             if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
                 v.Enabled = false
@@ -160,12 +165,42 @@ local function toggleAntiLag()
                 v.Material = Enum.Material.SmoothPlastic
             end
         end
-        game:GetService("Lighting").GlobalShadows = false
-        game:GetService("Lighting").FogEnd = 9e9
-        sethiddenproperty(game:GetService("Lighting"), "Technology", 2)
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
         antiLagEnabled = true
         AntiLagButton.Text = "Anti Lag: ON"
         AntiLagButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+    end
+end
+
+local function toggleESP()
+    espEnabled = not espEnabled
+    ESPButton.Text = espEnabled and "ESP Name: ON" or "ESP Name: OFF"
+    if espEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local billboard = Instance.new("BillboardGui")
+                billboard.Name = "ESPTag"
+                billboard.Size = UDim2.new(0,100,0,50)
+                billboard.Adornee = plr.Character.HumanoidRootPart
+                billboard.AlwaysOnTop = true
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1,0,1,0)
+                label.BackgroundTransparency = 1
+                label.TextColor3 = Color3.fromRGB(255, 0, 255)
+                label.TextScaled = true
+                label.Text = plr.Name
+                label.Font = Enum.Font.Bangers
+                label.Parent = billboard
+                billboard.Parent = ScreenGui
+                espTags[plr] = billboard
+            end
+        end
+    else
+        for _, tag in pairs(espTags) do
+            if tag then tag:Destroy() end
+        end
+        espTags = {}
     end
 end
 
@@ -193,6 +228,8 @@ PurpleTeam.MouseButton1Click:Connect(function()
 end)
 
 AntiLagButton.MouseButton1Click:Connect(toggleAntiLag)
+ShadersButton.MouseButton1Click:Connect(toggleShaders)
+ESPButton.MouseButton1Click:Connect(toggleESP)
 
 CloseButton.MouseButton1Click:Connect(function()
     Aimlock.Visible = false
@@ -213,8 +250,6 @@ CloseSettingsButton.MouseButton1Click:Connect(function()
     SettingsFrame.Visible = false
     Aimlock.Visible = true
 end)
-
-ShadersButton.MouseButton1Click:Connect(toggleShaders)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
