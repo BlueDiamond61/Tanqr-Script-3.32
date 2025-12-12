@@ -1,0 +1,256 @@
+-- Lua services
+-- Version: 2.6
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TanqrScriptGUI"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local function createFrame(name, parent, size, pos, visible)
+    local fr = Instance.new("Frame")
+    fr.Name = name
+    fr.Parent = parent
+    fr.Size = size
+    fr.Position = pos
+    fr.Visible = visible
+    fr.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    fr.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    fr.BackgroundTransparency = 0.1
+    fr.Active = true
+    fr.Selectable = true
+    fr.Draggable = true
+    return fr
+end
+
+local function btn(name, parent, size, pos, text)
+    local b = Instance.new("TextButton")
+    b.Name = name
+    b.Parent = parent
+    b.Size = size
+    b.Position = pos
+    b.Text = text
+    b.Font = Enum.Font.Bangers
+    b.TextScaled = true
+    b.TextColor3 = Color3.fromRGB(85, 255, 255)
+    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    b.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    return b
+end
+
+local function lbl(name, parent, size, pos, text)
+    local l = Instance.new("TextLabel")
+    l.Name = name
+    l.Parent = parent
+    l.Size = size
+    l.Position = pos
+    l.Text = text
+    l.Font = Enum.Font.Bangers
+    l.TextScaled = true
+    l.TextColor3 = Color3.fromRGB(85, 255, 255)
+    l.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    l.BackgroundTransparency = 0.2
+    l.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    return l
+end
+
+local OpenButton = btn("OpenButton", ScreenGui, UDim2.new(0,100,0,40), UDim2.new(0,10,0,10),"OPEN")
+OpenButton.Visible = false
+
+local Main = createFrame("Main", ScreenGui, UDim2.new(0,400,0,300), UDim2.new(0.06,0,0.1,0), true)
+lbl("Title", Main, UDim2.new(0,380,0,50), UDim2.new(0,0,0,0), "Tanqr Script")
+
+local TanqrAimBtn = btn("TanqrAimBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.2,0), "Tanqr Aim")
+local PurpleTeamBtn = btn("PurpleTeamBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.2,0), "Purple Team")
+local SettingsBtn = btn("SettingsBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.4,0), "Settings")
+local AntiLagBtn = btn("AntiLagBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.4,0), "Anti Lag")
+
+local Logo = Instance.new("ImageLabel")
+Logo.Parent = Main
+Logo.Size = UDim2.new(0,120,0,100)
+Logo.Position = UDim2.new(0.25,0,0.7,0)
+Logo.Image = "http://www.roblox.com/asset/?id=4761224815"
+
+lbl("Footer", Main, UDim2.new(0,380,0,50), UDim2.new(0,0,0.85,0),"Made BY Golden blue on github")
+
+local CloseMain = btn("CloseMain", Main, UDim2.new(0,30,0,30), UDim2.new(0.9,0,0.02,0), "X")
+CloseMain.BackgroundColor3 = Color3.fromRGB(255,0,0)
+CloseMain.TextColor3 = Color3.fromRGB(255,255,255)
+
+local Settings = createFrame("Settings", ScreenGui, UDim2.new(0,400,0,300), UDim2.new(0.06,0,0.1,0), false)
+lbl("SettingsTitle", Settings, UDim2.new(0,380,0,50), UDim2.new(0,0,0,0), "Settings")
+
+local ShadersBtn = btn("ShadersBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.2,0), "Shaders: OFF")
+local ESPBtn = btn("ESPBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.2,0), "ESP Name: OFF")
+local DayNightBtn = btn("DayNightBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.4,0),"Night Mode")
+
+local CloseSettings = btn("CloseSettings", Settings, UDim2.new(0,30,0,30), UDim2.new(0.9,0,0.02,0),"X")
+CloseSettings.BackgroundColor3 = Color3.fromRGB(255,0,0)
+CloseSettings.TextColor3 = Color3.fromRGB(255,255,255)
+
+local AimEnabled = false
+local ShadersEnabled = false
+local AntiLagEnabled = false
+local ESPEnabled = false
+local NightMode = false
+
+local AimParts = {"HumanoidRootPart", "HeadHB", "RightUpperLeg", "LeftUpperLeg"}
+
+RunService.Heartbeat:Connect(function()
+    if AimEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                for _, part in ipairs(AimParts) do
+                    local p = plr.Character:FindFirstChild(part)
+                    if p then
+                        p.CanCollide = false
+                        p.Transparency = 1
+                        p.Size = Vector3.new(13,13,13)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+TanqrAimBtn.MouseButton1Click:Connect(function()
+    AimEnabled = not AimEnabled
+    TanqrAimBtn.Text = AimEnabled and "Tanqr Aim: ON" or "Tanqr Aim: OFF"
+end)
+
+PurpleTeamBtn.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/pyzjWNhk"))()
+end)
+
+ShadersBtn.MouseButton1Click:Connect(function()
+    ShadersEnabled = not ShadersEnabled
+    ShadersBtn.Text = ShadersEnabled and "Shaders: ON" or "Shaders: OFF"
+    for _, v in pairs(Lighting:GetChildren()) do
+        if v.Name:find("ShaderFX") then v:Destroy() end
+    end
+    if ShadersEnabled then
+        local CC = Instance.new("ColorCorrectionEffect")
+        CC.Name = "ShaderFX_CC"
+        CC.Brightness = -0.1
+        CC.Contrast = 0.15
+        CC.Saturation = -0.15
+        CC.Parent = Lighting
+        local Bloom = Instance.new("BloomEffect")
+        Bloom.Name = "ShaderFX_Bloom"
+        Bloom.Intensity = 0.25
+        Bloom.Size = 20
+        Bloom.Parent = Lighting
+    end
+end)
+
+AntiLagBtn.MouseButton1Click:Connect(function()
+    AntiLagEnabled = not AntiLagEnabled
+    AntiLagBtn.Text = AntiLagEnabled and "Anti Lag: ON" or "Anti Lag: OFF"
+    if AntiLagEnabled then
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+                v.Enabled = false
+            end
+        end
+    else
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+        Lighting.GlobalShadows = true
+        Lighting.FogEnd = 1000
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if ESPEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                local head = plr.Character:FindFirstChild("Head")
+                if head and not head:FindFirstChild("ESPName") then
+                    local b = Instance.new("BillboardGui")
+                    b.Name = "ESPName"
+                    b.Adornee = head
+                    b.Size = UDim2.new(4,0,1,0)
+                    b.AlwaysOnTop = true
+                    local t = Instance.new("TextLabel", b)
+                    t.Size = UDim2.new(1,0,1,0)
+                    t.BackgroundTransparency = 1
+                    t.TextScaled = true
+                    t.Text = plr.Name
+                    t.TextColor3 = Color3.fromRGB(255,50,50)
+                    b.Parent = head
+                end
+            end
+        end
+    end
+end)
+
+ESPBtn.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ESPBtn.Text = ESPEnabled and "ESP Name: ON" or "ESP Name: OFF"
+end)
+
+DayNightBtn.MouseButton1Click:Connect(function()
+    NightMode = not NightMode
+    Lighting.TimeOfDay = NightMode and "00:00:00" or "14:00:00"
+    DayNightBtn.Text = NightMode and "Day Mode" or "Night Mode"
+end)
+
+CloseMain.MouseButton1Click:Connect(function()
+    Main.Visible = false
+    OpenButton.Visible = true
+end)
+
+OpenButton.MouseButton1Click:Connect(function()
+    Main.Visible = true
+    OpenButton.Visible = false
+end)
+
+SettingsBtn.MouseButton1Click:Connect(function()
+    Main.Visible = false
+    Settings.Visible = true
+end)
+
+CloseSettings.MouseButton1Click:Connect(function()
+    Settings.Visible = false
+    Main.Visible = true
+end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.RightControl then
+        Main.Visible = not Main.Visible
+        OpenButton.Visible = not Main.Visible
+    end
+end)
+
+coroutine.wrap(function()
+    while true do
+        wait(0.1)
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and v.Character then
+                local c = v.Character
+                local parts = {
+                    RightUpperLeg = Vector3.new(6,8,6),
+                    LeftUpperLeg = Vector3.new(6,8,6),
+                    HeadHB = Vector3.new(18,18,18),
+                    HumanoidRootPart = Vector3.new(8,10,8)
+                }
+                for name, size in pairs(parts) do
+                    local p = c:FindFirstChild(name)
+                    if p then
+                        p.CanCollide = false
+                        p.Transparency = 0.5
+                        p.Size = size
+                    end
+                end
+            end
+        end
+    end
+end)()
