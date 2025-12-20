@@ -1,5 +1,6 @@
 -- Lua services
--- Version: 2.6
+-- Version: 2.6.2
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
@@ -100,19 +101,23 @@ local AntiLagEnabled = false
 local ESPEnabled = false
 local NightMode = false
 
-local AimParts = {"HumanoidRootPart", "HeadHB", "RightUpperLeg", "LeftUpperLeg"}
+local AimParts = {
+    HeadHB = Vector3.new(23,23,23),
+    HumanoidRootPart = Vector3.new(19,19,19),
+    RightUpperLeg = Vector3.new(13,13,13),
+    LeftUpperLeg = Vector3.new(13,13,13),
+}
 
 RunService.Heartbeat:Connect(function()
-    if AimEnabled then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character then
-                for _, part in ipairs(AimParts) do
-                    local p = plr.Character:FindFirstChild(part)
-                    if p then
-                        p.CanCollide = false
-                        p.Transparency = 1
-                        p.Size = Vector3.new(13,13,13)
-                    end
+    if not AimEnabled then return end
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            for partName, size in pairs(AimParts) do
+                local part = plr.Character:FindFirstChild(partName)
+                if part then
+                    part.CanCollide = false
+                    part.Transparency = 1
+                    part.Size = size
                 end
             end
         end
@@ -125,7 +130,7 @@ TanqrAimBtn.MouseButton1Click:Connect(function()
 end)
 
 PurpleTeamBtn.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://pastebin.com/raw/5j9yrWvs"))()
+    loadstring(game:HttpGet("https://pastebin.com/raw/pyzjWNhk"))()
 end)
 
 ShadersBtn.MouseButton1Click:Connect(function()
@@ -169,11 +174,12 @@ AntiLagBtn.MouseButton1Click:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
-    if ESPEnabled then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character then
-                local head = plr.Character:FindFirstChild("Head")
-                if head and not head:FindFirstChild("ESPName") then
+    if not ESPEnabled then return end
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            if head then
+                if not head:FindFirstChild("ESPName") then
                     local b = Instance.new("BillboardGui")
                     b.Name = "ESPName"
                     b.Adornee = head
@@ -223,34 +229,9 @@ CloseSettings.MouseButton1Click:Connect(function()
     Main.Visible = true
 end)
 
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.RightControl then
+UserInputService.InputBegan:Connect(function(i, p)
+    if not p and i.KeyCode == Enum.KeyCode.RightControl then
         Main.Visible = not Main.Visible
         OpenButton.Visible = not Main.Visible
     end
 end)
-
-coroutine.wrap(function()
-    while true do
-        wait(0.1)
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character then
-                local c = v.Character
-                local parts = {
-                    RightUpperLeg = Vector3.new(6,8,6),
-                    LeftUpperLeg = Vector3.new(6,8,6),
-                    HeadHB = Vector3.new(18,18,18),
-                    HumanoidRootPart = Vector3.new(8,10,8)
-                }
-                for name, size in pairs(parts) do
-                    local p = c:FindFirstChild(name)
-                    if p then
-                        p.CanCollide = false
-                        p.Transparency = 0.5
-                        p.Size = size
-                    end
-                end
-            end
-        end
-    end
-end)()
