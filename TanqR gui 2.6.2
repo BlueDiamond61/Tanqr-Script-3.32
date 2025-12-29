@@ -1,6 +1,5 @@
--- Lua services
--- Version: 2.6.2
-
+- Lua services
+-Version : 2.6.5
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
@@ -9,10 +8,53 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+if PlayerGui:FindFirstChild("TanqrScriptGUI") then
+    PlayerGui.TanqrScriptGUI:Destroy()
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TanqrScriptGUI"
 ScreenGui.Parent = PlayerGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+local function makeDraggable(frame)
+    local dragging = false
+    local dragInput
+    local startPos
+    local startFramePos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startPos = input.Position
+            startFramePos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - startPos
+            frame.Position = UDim2.new(
+                startFramePos.X.Scale,
+                startFramePos.X.Offset + delta.X,
+                startFramePos.Y.Scale,
+                startFramePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
 
 local function createFrame(name, parent, size, pos, visible)
     local fr = Instance.new("Frame")
@@ -21,12 +63,11 @@ local function createFrame(name, parent, size, pos, visible)
     fr.Size = size
     fr.Position = pos
     fr.Visible = visible
-    fr.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    fr.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    fr.BackgroundColor3 = Color3.fromRGB(15,15,15)
+    fr.BorderColor3 = Color3.fromRGB(85,255,255)
     fr.BackgroundTransparency = 0.1
     fr.Active = true
-    fr.Selectable = true
-    fr.Draggable = true
+    makeDraggable(fr)
     return fr
 end
 
@@ -39,9 +80,9 @@ local function btn(name, parent, size, pos, text)
     b.Text = text
     b.Font = Enum.Font.Bangers
     b.TextScaled = true
-    b.TextColor3 = Color3.fromRGB(85, 255, 255)
-    b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    b.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    b.TextColor3 = Color3.fromRGB(85,255,255)
+    b.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    b.BorderColor3 = Color3.fromRGB(85,255,255)
     return b
 end
 
@@ -54,31 +95,32 @@ local function lbl(name, parent, size, pos, text)
     l.Text = text
     l.Font = Enum.Font.Bangers
     l.TextScaled = true
-    l.TextColor3 = Color3.fromRGB(85, 255, 255)
-    l.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    l.TextColor3 = Color3.fromRGB(85,255,255)
+    l.BackgroundColor3 = Color3.fromRGB(0,0,0)
     l.BackgroundTransparency = 0.2
-    l.BorderColor3 = Color3.fromRGB(85, 255, 255)
+    l.BorderColor3 = Color3.fromRGB(85,255,255)
     return l
 end
 
-local OpenButton = btn("OpenButton", ScreenGui, UDim2.new(0,100,0,40), UDim2.new(0,10,0,10),"OPEN")
+local OpenButton = btn("OpenButton", ScreenGui, UDim2.new(0,100,0,40), UDim2.new(0,10,0,10), "OPEN")
 OpenButton.Visible = false
 
 local Main = createFrame("Main", ScreenGui, UDim2.new(0,400,0,300), UDim2.new(0.06,0,0.1,0), true)
 lbl("Title", Main, UDim2.new(0,380,0,50), UDim2.new(0,0,0,0), "Tanqr Script")
 
-local TanqrAimBtn = btn("TanqrAimBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.2,0), "Tanqr Aim")
+local TanqrAimBtn = btn("TanqrAimBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.2,0), "Tanqr Aim: OFF")
 local PurpleTeamBtn = btn("PurpleTeamBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.2,0), "Purple Team")
 local SettingsBtn = btn("SettingsBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.4,0), "Settings")
-local AntiLagBtn = btn("AntiLagBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.4,0), "Anti Lag")
+local AntiLagBtn = btn("AntiLagBtn", Main, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.4,0), "Anti Lag: OFF")
 
 local Logo = Instance.new("ImageLabel")
 Logo.Parent = Main
 Logo.Size = UDim2.new(0,120,0,100)
 Logo.Position = UDim2.new(0.25,0,0.7,0)
 Logo.Image = "http://www.roblox.com/asset/?id=4761224815"
+Logo.BackgroundTransparency = 1
 
-lbl("Footer", Main, UDim2.new(0,380,0,50), UDim2.new(0,0,0.85,0),"Made BY Golden blue on github")
+lbl("Footer", Main, UDim2.new(0,380,0,50), UDim2.new(0,0,0.85,0), "Made BY Golden blue on github")
 
 local CloseMain = btn("CloseMain", Main, UDim2.new(0,30,0,30), UDim2.new(0.9,0,0.02,0), "X")
 CloseMain.BackgroundColor3 = Color3.fromRGB(255,0,0)
@@ -89,9 +131,9 @@ lbl("SettingsTitle", Settings, UDim2.new(0,380,0,50), UDim2.new(0,0,0,0), "Setti
 
 local ShadersBtn = btn("ShadersBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.2,0), "Shaders: OFF")
 local ESPBtn = btn("ESPBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.55,0,0.2,0), "ESP Name: OFF")
-local DayNightBtn = btn("DayNightBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.4,0),"Night Mode")
+local DayNightBtn = btn("DayNightBtn", Settings, UDim2.new(0,180,0,50), UDim2.new(0.05,0,0.4,0), "Night Mode")
 
-local CloseSettings = btn("CloseSettings", Settings, UDim2.new(0,30,0,30), UDim2.new(0.9,0,0.02,0),"X")
+local CloseSettings = btn("CloseSettings", Settings, UDim2.new(0,30,0,30), UDim2.new(0.9,0,0.02,0), "X")
 CloseSettings.BackgroundColor3 = Color3.fromRGB(255,0,0)
 CloseSettings.TextColor3 = Color3.fromRGB(255,255,255)
 
@@ -102,24 +144,44 @@ local ESPEnabled = false
 local NightMode = false
 
 local AimParts = {
-    HeadHB = Vector3.new(48,48,48),
-    HumanoidRootPart = Vector3.new(40,40,40),
-    RightUpperLeg = Vector3.new(32,32,32),
-    LeftUpperLeg = Vector3.new(32,32,32),
-    Vexarion = {
-    ReactionTime = 0.05
+    HeadHB = Vector3.new(28,28,28),
+    HumanoidRootPart = Vector3.new(24,24,24),
+    RightUpperLeg = Vector3.new(21,21,21),
+    LeftUpperLeg = Vector3.new(21,21,21)
 }
 
-RunService.Heartbeat:Connect(function()
-    if not AimEnabled then return end
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            for partName, size in pairs(AimParts) do
-                local part = plr.Character:FindFirstChild(partName)
-                if part then
-                    part.CanCollide = false
-                    part.Transparency = 1
-                    part.Size = size
+local OriginalParts = {}
+
+local function restoreParts()
+    for part, data in pairs(OriginalParts) do
+        if part and part.Parent then
+            part.Size = data.Size
+            part.Transparency = data.Transparency
+            part.CanCollide = data.CanCollide
+        end
+    end
+    table.clear(OriginalParts)
+end
+
+task.spawn(function()
+    while task.wait(0.25) do
+        if not AimEnabled then continue end
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                for partName, size in pairs(AimParts) do
+                    local part = plr.Character:FindFirstChild(partName)
+                    if part then
+                        if not OriginalParts[part] then
+                            OriginalParts[part] = {
+                                Size = part.Size,
+                                Transparency = part.Transparency,
+                                CanCollide = part.CanCollide
+                            }
+                        end
+                        part.CanCollide = false
+                        part.Transparency = 1
+                        part.Size = size
+                    end
                 end
             end
         end
@@ -129,17 +191,24 @@ end)
 TanqrAimBtn.MouseButton1Click:Connect(function()
     AimEnabled = not AimEnabled
     TanqrAimBtn.Text = AimEnabled and "Tanqr Aim: ON" or "Tanqr Aim: OFF"
+    if not AimEnabled then
+        restoreParts()
+    end
 end)
 
 PurpleTeamBtn.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://pastebin.com/raw/pyzjWNhk"))()
+    pcall(function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/pyzjWNhk"))()
+    end)
 end)
 
 ShadersBtn.MouseButton1Click:Connect(function()
     ShadersEnabled = not ShadersEnabled
     ShadersBtn.Text = ShadersEnabled and "Shaders: ON" or "Shaders: OFF"
-    for _, v in pairs(Lighting:GetChildren()) do
-        if v.Name:find("ShaderFX") then v:Destroy() end
+    for _, v in ipairs(Lighting:GetChildren()) do
+        if v.Name:find("ShaderFX") then
+            v:Destroy()
+        end
     end
     if ShadersEnabled then
         local CC = Instance.new("ColorCorrectionEffect")
@@ -156,6 +225,8 @@ ShadersBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+local DisabledFX = {}
+
 AntiLagBtn.MouseButton1Click:Connect(function()
     AntiLagEnabled = not AntiLagEnabled
     AntiLagBtn.Text = AntiLagEnabled and "Anti Lag: ON" or "Anti Lag: OFF"
@@ -163,8 +234,9 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
-        for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+        for _, v in ipairs(game:GetDescendants()) do
+            if (v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam")) and v.Enabled then
+                DisabledFX[v] = true
                 v.Enabled = false
             end
         end
@@ -172,37 +244,67 @@ AntiLagBtn.MouseButton1Click:Connect(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         Lighting.GlobalShadows = true
         Lighting.FogEnd = 1000
+        for v in pairs(DisabledFX) do
+            if v and v.Parent then
+                v.Enabled = true
+            end
+        end
+        table.clear(DisabledFX)
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if not ESPEnabled then return end
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            local head = plr.Character:FindFirstChild("Head")
-            if head then
-                if not head:FindFirstChild("ESPName") then
-                    local b = Instance.new("BillboardGui")
-                    b.Name = "ESPName"
-                    b.Adornee = head
-                    b.Size = UDim2.new(4,0,1,0)
-                    b.AlwaysOnTop = true
-                    local t = Instance.new("TextLabel", b)
-                    t.Size = UDim2.new(1,0,1,0)
-                    t.BackgroundTransparency = 1
-                    t.TextScaled = true
-                    t.Text = plr.Name
-                    t.TextColor3 = Color3.fromRGB(255,50,50)
-                    b.Parent = head
-                end
-            end
-        end
+local function addESP(char, plr)
+    local head = char:FindFirstChild("Head")
+    if not head or head:FindFirstChild("ESPName") then return end
+    local b = Instance.new("BillboardGui")
+    b.Name = "ESPName"
+    b.Adornee = head
+    b.Size = UDim2.new(4,0,1,0)
+    b.AlwaysOnTop = true
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1,0,1,0)
+    t.BackgroundTransparency = 1
+    t.TextScaled = true
+    t.Text = plr.Name
+    t.TextColor3 = Color3.fromRGB(255,50,50)
+    t.Parent = b
+    b.Parent = head
+end
+
+local function applyESP(plr)
+    if plr == LocalPlayer then return end
+    if plr.Character and ESPEnabled then
+        addESP(plr.Character, plr)
     end
-end)
+    plr.CharacterAdded:Connect(function(char)
+        if ESPEnabled then
+            char:WaitForChild("Head",5)
+            addESP(char, plr)
+        end
+    end)
+end
+
+for _, plr in ipairs(Players:GetPlayers()) do
+    applyESP(plr)
+end
+
+Players.PlayerAdded:Connect(applyESP)
 
 ESPBtn.MouseButton1Click:Connect(function()
     ESPEnabled = not ESPEnabled
     ESPBtn.Text = ESPEnabled and "ESP Name: ON" or "ESP Name: OFF"
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            if head then
+                if ESPEnabled then
+                    addESP(plr.Character, plr)
+                elseif head:FindFirstChild("ESPName") then
+                    head.ESPName:Destroy()
+                end
+            end
+        end
+    end
 end)
 
 DayNightBtn.MouseButton1Click:Connect(function()
@@ -213,6 +315,7 @@ end)
 
 CloseMain.MouseButton1Click:Connect(function()
     Main.Visible = false
+    Settings.Visible = false
     OpenButton.Visible = true
 end)
 
@@ -232,8 +335,11 @@ CloseSettings.MouseButton1Click:Connect(function()
 end)
 
 UserInputService.InputBegan:Connect(function(i, p)
-    if not p and i.KeyCode == Enum.KeyCode.RightControl then
-        Main.Visible = not Main.Visible
-        OpenButton.Visible = not Main.Visible
+    if p then return end
+    if i.KeyCode == Enum.KeyCode.RightControl then
+        local state = not Main.Visible and not Settings.Visible
+        Main.Visible = state
+        Settings.Visible = false
+        OpenButton.Visible = not state
     end
 end)
