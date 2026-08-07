@@ -6,3 +6,6 @@ Latest update:
 - 3.0 is out
 And go to updates too see previous updates and new ones!
 So anyways enjoy the gui love u guys❤️
+
+i am not safe I have to leave for now.
+i will be back when things cooldown
