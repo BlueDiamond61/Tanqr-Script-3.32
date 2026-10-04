@@ -1,193 +1,155 @@
+--------------------------------------------------
+-- CONFIG-
+--------------------------------------------------
+
 local KEY = "WC$552"
 
 local DEFAULT_SPEED = 16
-local MAX_SAFE_SPEED = 120
+local MIN_SPEED = 1
+local MAX_SPEED = 120
+
+local SMOOTHING = 8
+
+local COLORS = {
+    Background = Color3.fromRGB(48, 38, 78),
+    Background2 = Color3.fromRGB(57, 45, 91),
+
+    Input = Color3.fromRGB(35, 30, 53),
+
+    Primary = Color3.fromRGB(154, 116, 255),
+    PrimaryDark = Color3.fromRGB(116, 82, 205),
+
+    Secondary = Color3.fromRGB(105, 82, 175),
+
+    Text = Color3.fromRGB(245, 243, 252),
+    SubText = Color3.fromRGB(183, 174, 208),
+
+    Success = Color3.fromRGB(105, 235, 145),
+    Warning = Color3.fromRGB(255, 190, 90),
+    Error = Color3.fromRGB(255, 105, 120)
+}
+
+--------------------------------------------------
+-- SERVICES
+--------------------------------------------------
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Prevent duplicate GUI instances
-local oldGui = playerGui:FindFirstChild("CuteWSGui")
+--------------------------------------------------
+-- DUPLICATE PROTECTION
+--------------------------------------------------
 
-if oldGui then
-    oldGui:Destroy()
+local existing = playerGui:FindFirstChild("CuteWSGuiV2")
+
+if existing then
+    existing:Destroy()
 end
 
--- State
-local humanoid
-local keyAccepted = false
+--------------------------------------------------
+-- STATE
+--------------------------------------------------
+
+local humanoid = nil
+local rootPart = nil
+
+local unlocked = false
+local guiOpen = true
+
+local currentTargetSpeed = DEFAULT_SPEED
+local previousTargetSpeed = DEFAULT_SPEED
 
 local antiFling = true
 local softLimit = true
+local smoothSpeed = true
 
-local currentTargetSpeed = DEFAULT_SPEED
-local smoothingFactor = 8
+local selectedPreset = "Normal"
 
-local guiOpen = true
+local connections = {}
 
 --------------------------------------------------
--- HUMANOID
+-- CONNECTION MANAGEMENT
 --------------------------------------------------
 
-local function getHumanoid(character)
-    character = character or player.Character
+local function connect(signal, callback)
+
+    local connection = signal:Connect(callback)
+
+    table.insert(connections, connection)
+
+    return connection
+end
+
+local function cleanup()
+
+    for _, connection in ipairs(connections) do
+
+        if connection and connection.Connected then
+            connection:Disconnect()
+        end
+
+    end
+
+    table.clear(connections)
+end
+
+--------------------------------------------------
+-- HUMANOID MANAGEMENT
+--------------------------------------------------
+
+local function updateCharacter(character)
+
+    humanoid = nil
+    rootPart = nil
 
     if not character then
-        character = player.CharacterAdded:Wait()
+        return
     end
 
-    return character:WaitForChild("Humanoid")
-end
+    humanoid = character:WaitForChild("Humanoid", 10)
+    rootPart = character:WaitForChild("HumanoidRootPart", 10)
 
-humanoid = getHumanoid()
+    if unlocked and humanoid then
+        task.wait(0.15)
 
-player.CharacterAdded:Connect(function(character)
-
-    humanoid = character:WaitForChild("Humanoid")
-
-    task.wait(0.15)
-
-    if keyAccepted then
-        humanoid.WalkSpeed = DEFAULT_SPEED
+        if humanoid and humanoid.Parent then
+            humanoid.WalkSpeed = DEFAULT_SPEED
+        end
     end
-end)
-
---------------------------------------------------
--- UI HELPERS
---------------------------------------------------
-
-local function makeCorner(parent, radius)
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
-    corner.Parent = parent
-
-    return corner
 end
 
-local function makeStroke(parent, color, transparency, thickness)
+updateCharacter(player.Character)
 
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or Color3.fromRGB(150, 120, 255)
-    stroke.Transparency = transparency or 0.35
-    stroke.Thickness = thickness or 1
-    stroke.Parent = parent
+connect(
+    player.CharacterAdded,
+    function(character)
 
-    return stroke
-end
+        updateCharacter(character)
 
-local function tween(instance, properties, time, style, direction)
+        task.wait(0.2)
 
-    local info = TweenInfo.new(
-        time or 0.25,
-        style or Enum.EasingStyle.Sine,
-        direction or Enum.EasingDirection.Out
-    )
-
-    TweenService:Create(instance, info, properties):Play()
-end
+        if unlocked and humanoid then
+            humanoid.WalkSpeed = currentTargetSpeed
+        end
+    end
+)
 
 --------------------------------------------------
--- BUTTON CREATOR
---------------------------------------------------
-
-local function createButton(parent, posY, text, backgroundColor)
-
-    local button = Instance.new("TextButton")
-
-    button.Parent = parent
-    button.Size = UDim2.new(1, -40, 0, 34)
-    button.Position = UDim2.new(0, 20, 0, posY)
-
-    button.BackgroundColor3 =
-        backgroundColor or Color3.fromRGB(166, 134, 255)
-
-    button.BorderSizePixel = 0
-
-    button.Text = text
-    button.Font = Enum.Font.GothamSemibold
-    button.TextScaled = true
-    button.TextColor3 = Color3.fromRGB(245, 244, 250)
-
-    button.AutoButtonColor = false
-
-    makeCorner(button, 9)
-    makeStroke(
-        button,
-        Color3.fromRGB(190, 165, 255),
-        0.65,
-        1
-    )
-
-    local originalColor =
-        backgroundColor or Color3.fromRGB(166, 134, 255)
-
-    local hoverColor =
-        Color3.fromRGB(130, 98, 235)
-
-    button.MouseEnter:Connect(function()
-
-        tween(
-            button,
-            {
-                BackgroundColor3 = hoverColor
-            },
-            0.12
-        )
-    end)
-
-    button.MouseLeave:Connect(function()
-
-        tween(
-            button,
-            {
-                BackgroundColor3 = originalColor
-            },
-            0.12
-        )
-    end)
-
-    button.Activated:Connect(function()
-
-        tween(
-            button,
-            {
-                Size = UDim2.new(1, -44, 0, 32)
-            },
-            0.07
-        )
-
-        task.delay(0.07, function()
-
-            if button.Parent then
-
-                tween(
-                    button,
-                    {
-                        Size = UDim2.new(1, -40, 0, 34)
-                    },
-                    0.1
-                )
-            end
-        end)
-    end)
-
-    return button
-end
-
---------------------------------------------------
--- MAIN GUI
+-- GUI
 --------------------------------------------------
 
 local gui = Instance.new("ScreenGui")
 
-gui.Name = "CuteWSGui"
+gui.Name = "CuteWSGuiV2"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
 gui.Parent = playerGui
 
 --------------------------------------------------
@@ -199,419 +161,1232 @@ uiScale.Scale = 1
 uiScale.Parent = gui
 
 --------------------------------------------------
--- KEY FRAME
+-- UI HELPERS
 --------------------------------------------------
 
-local keyFrame = Instance.new("Frame")
+local function corner(parent, radius)
 
-keyFrame.Parent = gui
-keyFrame.Size = UDim2.new(0, 300, 0, 205)
-keyFrame.Position = UDim2.new(0.5, -150, 0.5, -102)
-keyFrame.BackgroundColor3 = Color3.fromRGB(56, 44, 90)
-keyFrame.BorderSizePixel = 0
+    local object = Instance.new("UICorner")
 
-makeCorner(keyFrame, 14)
-makeStroke(
-    keyFrame,
-    Color3.fromRGB(175, 145, 255),
-    0.25,
-    1.5
+    object.CornerRadius =
+        UDim.new(0, radius or 10)
+
+    object.Parent = parent
+
+    return object
+end
+
+local function stroke(parent, color, transparency, thickness)
+
+    local object = Instance.new("UIStroke")
+
+    object.Color =
+        color or COLORS.Primary
+
+    object.Transparency =
+        transparency or 0.4
+
+    object.Thickness =
+        thickness or 1
+
+    object.Parent = parent
+
+    return object
+end
+
+local function gradient(parent, color1, color2, rotation)
+
+    local object = Instance.new("UIGradient")
+
+    object.Color =
+        ColorSequence.new({
+            ColorSequenceKeypoint.new(0, color1),
+            ColorSequenceKeypoint.new(1, color2)
+        })
+
+    object.Rotation = rotation or 90
+
+    object.Parent = parent
+
+    return object
+end
+
+local function tween(object, properties, duration, style, direction)
+
+    if not object or not object.Parent then
+        return
+    end
+
+    local info = TweenInfo.new(
+        duration or 0.25,
+        style or Enum.EasingStyle.Quint,
+        direction or Enum.EasingDirection.Out
+    )
+
+    local animation =
+        TweenService:Create(
+            object,
+            info,
+            properties
+        )
+
+    animation:Play()
+
+    return animation
+end
+
+--------------------------------------------------
+-- SHADOW
+--------------------------------------------------
+
+local function createShadow(parent)
+
+    local shadow = Instance.new("Frame")
+
+    shadow.Name = "Shadow"
+
+    shadow.Size = UDim2.new(1, 12, 1, 12)
+
+    shadow.Position =
+        UDim2.new(0, -6, 0, 7)
+
+    shadow.BackgroundColor3 =
+        Color3.fromRGB(10, 7, 18)
+
+    shadow.BackgroundTransparency = 0.55
+
+    shadow.BorderSizePixel = 0
+
+    shadow.ZIndex = math.max(
+        parent.ZIndex - 1,
+        0
+    )
+
+    shadow.Parent = parent.Parent
+
+    corner(shadow, 16)
+
+    return shadow
+end
+
+--------------------------------------------------
+-- MAIN PANEL CREATOR
+--------------------------------------------------
+
+local function createPanel(name, size)
+
+    local frame = Instance.new("Frame")
+
+    frame.Name = name
+
+    frame.Size = size
+
+    frame.Position =
+        UDim2.new(
+            0.5,
+            -size.X.Offset / 2,
+            0.5,
+            -size.Y.Offset / 2
+        )
+
+    frame.BackgroundColor3 =
+        COLORS.Background
+
+    frame.BorderSizePixel = 0
+
+    frame.ZIndex = 5
+
+    frame.Parent = gui
+
+    corner(frame, 15)
+
+    stroke(
+        frame,
+        Color3.fromRGB(183, 150, 255),
+        0.25,
+        1.4
+    )
+
+    gradient(
+        frame,
+        COLORS.Background2,
+        COLORS.Background,
+        110
+    )
+
+    createShadow(frame)
+
+    return frame
+end
+
+--------------------------------------------------
+-- BUTTON
+--------------------------------------------------
+
+local function createButton(
+    parent,
+    y,
+    text,
+    color
 )
 
+    local button = Instance.new("TextButton")
+
+    button.Size =
+        UDim2.new(1, -40, 0, 36)
+
+    button.Position =
+        UDim2.new(0, 20, 0, y)
+
+    button.BackgroundColor3 =
+        color or COLORS.Primary
+
+    button.BorderSizePixel = 0
+
+    button.Text = text
+
+    button.Font =
+        Enum.Font.GothamSemibold
+
+    button.TextScaled = true
+
+    button.TextColor3 =
+        COLORS.Text
+
+    button.AutoButtonColor = false
+
+    button.ZIndex = parent.ZIndex + 2
+
+    button.Parent = parent
+
+    corner(button, 9)
+
+    stroke(
+        button,
+        Color3.fromRGB(205, 188, 255),
+        0.65,
+        1
+    )
+
+    local original =
+        color or COLORS.Primary
+
+    local hover =
+        Color3.fromRGB(178, 142, 255)
+
+    connect(
+        button.MouseEnter,
+        function()
+
+            tween(
+                button,
+                {
+                    BackgroundColor3 = hover
+                },
+                0.12
+            )
+        end
+    )
+
+    connect(
+        button.MouseLeave,
+        function()
+
+            tween(
+                button,
+                {
+                    BackgroundColor3 = original
+                },
+                0.12
+            )
+        end
+    )
+
+    connect(
+        button.Activated,
+        function()
+
+            local oldSize = button.Size
+
+            tween(
+                button,
+                {
+                    Size = UDim2.new(
+                        1,
+                        -44,
+                        0,
+                        33
+                    )
+                },
+                0.06
+            )
+
+            task.delay(
+                0.07,
+                function()
+
+                    if button.Parent then
+
+                        tween(
+                            button,
+                            {
+                                Size = oldSize
+                            },
+                            0.1
+                        )
+
+                    end
+                end
+            )
+        end
+    )
+
+    return button
+end
+
 --------------------------------------------------
--- KEY ICON
+-- NOTIFICATION SYSTEM
 --------------------------------------------------
 
-local keyIcon = Instance.new("TextLabel")
+local notificationHolder =
+    Instance.new("Frame")
 
-keyIcon.Parent = keyFrame
-keyIcon.Size = UDim2.new(0, 42, 0, 42)
-keyIcon.Position = UDim2.new(0.5, -21, 0, 10)
+notificationHolder.Name =
+    "Notifications"
 
-keyIcon.BackgroundColor3 = Color3.fromRGB(105, 75, 180)
-keyIcon.BorderSizePixel = 0
+notificationHolder.Size =
+    UDim2.new(0, 300, 0, 300)
+
+notificationHolder.Position =
+    UDim2.new(1, -315, 0, 55)
+
+notificationHolder.BackgroundTransparency = 1
+
+notificationHolder.ZIndex = 50
+
+notificationHolder.Parent = gui
+
+local notificationLayout =
+    Instance.new("UIListLayout")
+
+notificationLayout.Padding =
+    UDim.new(0, 7)
+
+notificationLayout.HorizontalAlignment =
+    Enum.HorizontalAlignment.Right
+
+notificationLayout.VerticalAlignment =
+    Enum.VerticalAlignment.Top
+
+notificationLayout.Parent =
+    notificationHolder
+
+local function notify(
+    message,
+    color,
+    duration
+)
+
+    local notification =
+        Instance.new("Frame")
+
+    notification.Size =
+        UDim2.new(0, 280, 0, 45)
+
+    notification.BackgroundColor3 =
+        COLORS.Background
+
+    notification.BackgroundTransparency = 0.03
+
+    notification.BorderSizePixel = 0
+
+    notification.ZIndex = 51
+
+    notification.Parent =
+        notificationHolder
+
+    corner(notification, 10)
+
+    stroke(
+        notification,
+        color or COLORS.Primary,
+        0.25,
+        1.2
+    )
+
+    local label =
+        Instance.new("TextLabel")
+
+    label.Size =
+        UDim2.new(1, -24, 1, 0)
+
+    label.Position =
+        UDim2.new(0, 12, 0, 0)
+
+    label.BackgroundTransparency = 1
+
+    label.Text = message
+
+    label.Font =
+        Enum.Font.GothamSemibold
+
+    label.TextScaled = true
+
+    label.TextColor3 =
+        COLORS.Text
+
+    label.ZIndex = 52
+
+    label.Parent = notification
+
+    notification.Position =
+        UDim2.new(1, 20, 0, 0)
+
+    tween(
+        notification,
+        {
+            Position =
+                UDim2.new(0, 0, 0, 0)
+        },
+        0.3
+    )
+
+    task.delay(
+        duration or 2.5,
+        function()
+
+            if notification.Parent then
+
+                tween(
+                    notification,
+                    {
+                        Position =
+                            UDim2.new(
+                                1,
+                                20,
+                                0,
+                                0
+                            ),
+                        BackgroundTransparency = 1
+                    },
+                    0.25
+                )
+
+                task.wait(0.27)
+
+                notification:Destroy()
+
+            end
+        end
+    )
+end
+
+--------------------------------------------------
+-- KEY PANEL
+--------------------------------------------------
+
+local keyFrame =
+    createPanel(
+        "KeyFrame",
+        UDim2.new(0, 315, 0, 235)
+    )
+
+local keyIcon =
+    Instance.new("TextLabel")
+
+keyIcon.Size =
+    UDim2.new(0, 46, 0, 46)
+
+keyIcon.Position =
+    UDim2.new(0.5, -23, 0, 12)
+
+keyIcon.BackgroundColor3 =
+    COLORS.PrimaryDark
 
 keyIcon.Text = "✦"
-keyIcon.Font = Enum.Font.GothamBold
+
+keyIcon.Font =
+    Enum.Font.GothamBold
+
 keyIcon.TextScaled = true
-keyIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-makeCorner(keyIcon, 12)
+keyIcon.TextColor3 =
+    COLORS.Text
 
---------------------------------------------------
--- KEY TITLE
---------------------------------------------------
+keyIcon.ZIndex = 7
 
-local keyTitle = Instance.new("TextLabel")
+keyIcon.Parent = keyFrame
 
-keyTitle.Parent = keyFrame
-keyTitle.Size = UDim2.new(1, -30, 0, 30)
-keyTitle.Position = UDim2.new(0, 15, 0, 55)
+corner(keyIcon, 13)
+
+gradient(
+    keyIcon,
+    COLORS.Primary,
+    COLORS.PrimaryDark,
+    45
+)
+
+local keyTitle =
+    Instance.new("TextLabel")
+
+keyTitle.Size =
+    UDim2.new(1, -30, 0, 30)
+
+keyTitle.Position =
+    UDim2.new(0, 15, 0, 64)
 
 keyTitle.BackgroundTransparency = 1
 
 keyTitle.Text = "Access Key"
-keyTitle.Font = Enum.Font.GothamBold
+
+keyTitle.Font =
+    Enum.Font.GothamBold
+
 keyTitle.TextScaled = true
-keyTitle.TextColor3 = Color3.fromRGB(245, 244, 250)
 
---------------------------------------------------
--- KEY SUBTITLE
---------------------------------------------------
+keyTitle.TextColor3 =
+    COLORS.Text
 
-local keySubtitle = Instance.new("TextLabel")
+keyTitle.ZIndex = 7
 
-keySubtitle.Parent = keyFrame
-keySubtitle.Size = UDim2.new(1, -40, 0, 22)
-keySubtitle.Position = UDim2.new(0, 20, 0, 82)
+keyTitle.Parent = keyFrame
+
+local keySubtitle =
+    Instance.new("TextLabel")
+
+keySubtitle.Size =
+    UDim2.new(1, -40, 0, 20)
+
+keySubtitle.Position =
+    UDim2.new(0, 20, 0, 92)
 
 keySubtitle.BackgroundTransparency = 1
 
-keySubtitle.Text = "Enter your key to continue"
-keySubtitle.Font = Enum.Font.Gotham
+keySubtitle.Text =
+    "Enter your key to unlock WalkSpeed"
+
+keySubtitle.Font =
+    Enum.Font.Gotham
+
 keySubtitle.TextScaled = true
-keySubtitle.TextColor3 = Color3.fromRGB(190, 182, 215)
 
---------------------------------------------------
--- KEY BOX
---------------------------------------------------
+keySubtitle.TextColor3 =
+    COLORS.SubText
 
-local keyBox = Instance.new("TextBox")
+keySubtitle.ZIndex = 7
 
-keyBox.Parent = keyFrame
-keyBox.Size = UDim2.new(1, -40, 0, 36)
-keyBox.Position = UDim2.new(0, 20, 0, 108)
+keySubtitle.Parent = keyFrame
 
-keyBox.BackgroundColor3 = Color3.fromRGB(40, 34, 60)
+local keyBox =
+    Instance.new("TextBox")
+
+keyBox.Size =
+    UDim2.new(1, -40, 0, 37)
+
+keyBox.Position =
+    UDim2.new(0, 20, 0, 119)
+
+keyBox.BackgroundColor3 =
+    COLORS.Input
+
 keyBox.BorderSizePixel = 0
 
-keyBox.TextColor3 = Color3.fromRGB(245, 244, 250)
-keyBox.PlaceholderColor3 = Color3.fromRGB(140, 132, 165)
-
-keyBox.PlaceholderText = "Type key..."
 keyBox.Text = ""
 
-keyBox.Font = Enum.Font.GothamSemibold
+keyBox.PlaceholderText =
+    "Enter key..."
+
+keyBox.PlaceholderColor3 =
+    Color3.fromRGB(130, 122, 153)
+
+keyBox.TextColor3 =
+    COLORS.Text
+
+keyBox.Font =
+    Enum.Font.GothamSemibold
+
 keyBox.TextScaled = true
 
 keyBox.ClearTextOnFocus = false
 
-makeCorner(keyBox, 9)
-makeStroke(
+keyBox.ZIndex = 8
+
+keyBox.Parent = keyFrame
+
+corner(keyBox, 9)
+
+stroke(
     keyBox,
-    Color3.fromRGB(145, 115, 220),
+    COLORS.Primary,
     0.65,
     1
 )
 
+local unlockButton =
+    createButton(
+        keyFrame,
+        165,
+        "✓  Unlock"
+    )
+
+local keyStatus =
+    Instance.new("TextLabel")
+
+keyStatus.Size =
+    UDim2.new(1, -40, 0, 22)
+
+keyStatus.Position =
+    UDim2.new(0, 20, 0, 207)
+
+keyStatus.BackgroundTransparency = 1
+
+keyStatus.Text = ""
+
+keyStatus.Font =
+    Enum.Font.GothamSemibold
+
+keyStatus.TextScaled = true
+
+keyStatus.TextColor3 =
+    COLORS.Error
+
+keyStatus.ZIndex = 7
+
+keyStatus.Parent = keyFrame
+
 --------------------------------------------------
--- UNLOCK BUTTON
+-- MAIN PANEL
 --------------------------------------------------
 
-local submitBtn = createButton(
-    keyFrame,
-    151,
-    "✓  Unlock",
-    Color3.fromRGB(166, 134, 255)
-)
-
---------------------------------------------------
--- KEY FEEDBACK
---------------------------------------------------
-
-local keyFeedback = Instance.new("TextLabel")
-
-keyFeedback.Parent = keyFrame
-keyFeedback.Size = UDim2.new(1, -40, 0, 22)
-keyFeedback.Position = UDim2.new(0, 20, 0, 184)
-
-keyFeedback.BackgroundTransparency = 1
-
-keyFeedback.Text = ""
-
-keyFeedback.Font = Enum.Font.GothamSemibold
-keyFeedback.TextScaled = true
-
-keyFeedback.TextColor3 = Color3.fromRGB(255, 120, 120)
-
---------------------------------------------------
--- MAIN FRAME
---------------------------------------------------
-
-local mainFrame = Instance.new("Frame")
-
-mainFrame.Parent = gui
-mainFrame.Size = UDim2.new(0, 300, 0, 285)
-mainFrame.Position = keyFrame.Position
-
-mainFrame.BackgroundColor3 = Color3.fromRGB(56, 44, 90)
-mainFrame.BorderSizePixel = 0
+local mainFrame =
+    createPanel(
+        "MainFrame",
+        UDim2.new(0, 315, 0, 390)
+    )
 
 mainFrame.Visible = false
 
-makeCorner(mainFrame, 14)
-makeStroke(
-    mainFrame,
-    Color3.fromRGB(175, 145, 255),
-    0.25,
-    1.5
-)
+local mainTitle =
+    Instance.new("TextLabel")
 
---------------------------------------------------
--- MAIN TITLE
---------------------------------------------------
+mainTitle.Size =
+    UDim2.new(1, -40, 0, 32)
 
-local mainTitle = Instance.new("TextLabel")
-
-mainTitle.Parent = mainFrame
-mainTitle.Size = UDim2.new(1, -30, 0, 32)
-mainTitle.Position = UDim2.new(0, 15, 0, 12)
+mainTitle.Position =
+    UDim2.new(0, 20, 0, 12)
 
 mainTitle.BackgroundTransparency = 1
 
 mainTitle.Text = "✦  WalkSpeed"
-mainTitle.Font = Enum.Font.GothamBold
+
+mainTitle.Font =
+    Enum.Font.GothamBold
+
 mainTitle.TextScaled = true
-mainTitle.TextColor3 = Color3.fromRGB(245, 244, 250)
+
+mainTitle.TextColor3 =
+    COLORS.Text
+
+mainTitle.ZIndex = 7
+
+mainTitle.Parent = mainFrame
 
 --------------------------------------------------
--- CURRENT SPEED
+-- STATUS
 --------------------------------------------------
 
-local currentSpeedLabel = Instance.new("TextLabel")
+local statusLabel =
+    Instance.new("TextLabel")
 
-currentSpeedLabel.Parent = mainFrame
-currentSpeedLabel.Size = UDim2.new(1, -40, 0, 22)
-currentSpeedLabel.Position = UDim2.new(0, 20, 0, 45)
+statusLabel.Size =
+    UDim2.new(1, -40, 0, 20)
 
-currentSpeedLabel.BackgroundTransparency = 1
+statusLabel.Position =
+    UDim2.new(0, 20, 0, 45)
 
-currentSpeedLabel.Text = "Current: 16   •   Target: 16"
+statusLabel.BackgroundTransparency = 1
 
-currentSpeedLabel.Font = Enum.Font.Gotham
-currentSpeedLabel.TextScaled = true
-currentSpeedLabel.TextColor3 =
-    Color3.fromRGB(190, 182, 215)
+statusLabel.Text =
+    "●  Ready"
+
+statusLabel.Font =
+    Enum.Font.GothamSemibold
+
+statusLabel.TextScaled = true
+
+statusLabel.TextColor3 =
+    COLORS.Success
+
+statusLabel.ZIndex = 7
+
+statusLabel.Parent = mainFrame
+
+--------------------------------------------------
+-- SPEED DISPLAY
+--------------------------------------------------
+
+local speedDisplay =
+    Instance.new("TextLabel")
+
+speedDisplay.Size =
+    UDim2.new(1, -40, 0, 28)
+
+speedDisplay.Position =
+    UDim2.new(0, 20, 0, 68)
+
+speedDisplay.BackgroundTransparency = 1
+
+speedDisplay.Text =
+    "16  →  16"
+
+speedDisplay.Font =
+    Enum.Font.GothamBold
+
+speedDisplay.TextScaled = true
+
+speedDisplay.TextColor3 =
+    COLORS.Text
+
+speedDisplay.ZIndex = 7
+
+speedDisplay.Parent = mainFrame
 
 --------------------------------------------------
 -- SPEED INPUT
 --------------------------------------------------
 
-local speedInput = Instance.new("TextBox")
+local speedInput =
+    Instance.new("TextBox")
 
-speedInput.Parent = mainFrame
-speedInput.Size = UDim2.new(1, -40, 0, 38)
-speedInput.Position = UDim2.new(0, 20, 0, 72)
+speedInput.Size =
+    UDim2.new(1, -40, 0, 38)
 
-speedInput.BackgroundColor3 = Color3.fromRGB(40, 34, 60)
+speedInput.Position =
+    UDim2.new(0, 20, 0, 104)
+
+speedInput.BackgroundColor3 =
+    COLORS.Input
+
 speedInput.BorderSizePixel = 0
 
-speedInput.TextColor3 = Color3.fromRGB(245, 244, 250)
-speedInput.PlaceholderColor3 = Color3.fromRGB(140, 132, 165)
+speedInput.Text =
+    tostring(DEFAULT_SPEED)
 
-speedInput.PlaceholderText = "Enter speed..."
-speedInput.Text = ""
+speedInput.PlaceholderText =
+    "Speed"
 
-speedInput.Font = Enum.Font.GothamSemibold
+speedInput.TextColor3 =
+    COLORS.Text
+
+speedInput.PlaceholderColor3 =
+    Color3.fromRGB(130, 122, 153)
+
+speedInput.Font =
+    Enum.Font.GothamSemibold
+
 speedInput.TextScaled = true
 
-makeCorner(speedInput, 9)
-makeStroke(
+speedInput.ZIndex = 8
+
+speedInput.Parent = mainFrame
+
+corner(speedInput, 9)
+
+stroke(
     speedInput,
-    Color3.fromRGB(145, 115, 220),
+    COLORS.Primary,
     0.65,
     1
 )
 
 --------------------------------------------------
--- MAIN BUTTONS
+-- SLIDER
 --------------------------------------------------
 
-local applyBtn = createButton(
-    mainFrame,
-    118,
-    "✓  Apply Speed",
-    Color3.fromRGB(166, 134, 255)
+local sliderBack =
+    Instance.new("Frame")
+
+sliderBack.Size =
+    UDim2.new(1, -40, 0, 8)
+
+sliderBack.Position =
+    UDim2.new(0, 20, 0, 154)
+
+sliderBack.BackgroundColor3 =
+    COLORS.Input
+
+sliderBack.BorderSizePixel = 0
+
+sliderBack.ZIndex = 8
+
+sliderBack.Parent = mainFrame
+
+corner(sliderBack, 5)
+
+local sliderFill =
+    Instance.new("Frame")
+
+sliderFill.Size =
+    UDim2.new(
+        DEFAULT_SPEED / MAX_SPEED,
+        0,
+        1,
+        0
+    )
+
+sliderFill.BackgroundColor3 =
+    COLORS.Primary
+
+sliderFill.BorderSizePixel = 0
+
+sliderFill.ZIndex = 9
+
+sliderFill.Parent = sliderBack
+
+corner(sliderFill, 5)
+
+local sliderButton =
+    Instance.new("TextButton")
+
+sliderButton.Size =
+    UDim2.new(0, 18, 0, 18)
+
+sliderButton.AnchorPoint =
+    Vector2.new(0.5, 0.5)
+
+sliderButton.Position =
+    UDim2.new(
+        DEFAULT_SPEED / MAX_SPEED,
+        0,
+        0.5,
+        0
+    )
+
+sliderButton.BackgroundColor3 =
+    COLORS.Text
+
+sliderButton.Text = ""
+
+sliderButton.BorderSizePixel = 0
+
+sliderButton.ZIndex = 10
+
+sliderButton.Parent = sliderBack
+
+corner(sliderButton, 20)
+
+stroke(
+    sliderButton,
+    COLORS.Primary,
+    0.1,
+    2
 )
 
-local removeBtn = createButton(
-    mainFrame,
-    158,
-    "↺  Reset Speed",
-    Color3.fromRGB(110, 90, 170)
+--------------------------------------------------
+-- SLIDER FUNCTION
+--------------------------------------------------
+
+local draggingSlider = false
+
+local function setSliderSpeed(speed)
+
+    speed =
+        math.clamp(
+            speed,
+            MIN_SPEED,
+            MAX_SPEED
+        )
+
+    currentTargetSpeed = speed
+
+    speedInput.Text =
+        tostring(
+            math.floor(speed * 10) / 10
+        )
+
+    local percentage =
+        speed / MAX_SPEED
+
+    sliderFill.Size =
+        UDim2.new(
+            percentage,
+            0,
+            1,
+            0
+        )
+
+    sliderButton.Position =
+        UDim2.new(
+            percentage,
+            0,
+            0.5,
+            0
+        )
+
+    selectedPreset = "Custom"
+end
+
+local function updateSliderFromInput(input)
+
+    local absoluteX =
+        input.Position.X
+
+    local startX =
+        sliderBack.AbsolutePosition.X
+
+    local width =
+        sliderBack.AbsoluteSize.X
+
+    local percentage =
+        math.clamp(
+            (absoluteX - startX) / width,
+            0,
+            1
+        )
+
+    local speed =
+        MIN_SPEED +
+        ((MAX_SPEED - MIN_SPEED) * percentage)
+
+    setSliderSpeed(speed)
+end
+
+connect(
+    sliderButton.InputBegan,
+    function(input)
+
+        if input.UserInputType ==
+            Enum.UserInputType.MouseButton1
+            or
+            input.UserInputType ==
+            Enum.UserInputType.Touch
+        then
+
+            draggingSlider = true
+
+        end
+    end
 )
 
-local openSettingsBtn = createButton(
-    mainFrame,
-    198,
-    "⚙  Settings",
-    Color3.fromRGB(90, 65, 200)
+connect(
+    UserInputService.InputChanged,
+    function(input)
+
+        if not draggingSlider then
+            return
+        end
+
+        if input.UserInputType ==
+            Enum.UserInputType.MouseMovement
+            or
+            input.UserInputType ==
+            Enum.UserInputType.Touch
+        then
+
+            updateSliderFromInput(input)
+
+        end
+    end
+)
+
+connect(
+    UserInputService.InputEnded,
+    function(input)
+
+        if input.UserInputType ==
+            Enum.UserInputType.MouseButton1
+            or
+            input.UserInputType ==
+            Enum.UserInputType.Touch
+        then
+
+            draggingSlider = false
+
+        end
+    end
 )
 
 --------------------------------------------------
--- MAIN STATUS
+-- PRESETS
 --------------------------------------------------
 
-local statusLabel = Instance.new("TextLabel")
+local presetTitle =
+    Instance.new("TextLabel")
 
-statusLabel.Parent = mainFrame
-statusLabel.Size = UDim2.new(1, -40, 0, 22)
-statusLabel.Position = UDim2.new(0, 20, 0, 244)
+presetTitle.Size =
+    UDim2.new(1, -40, 0, 20)
 
-statusLabel.BackgroundTransparency = 1
+presetTitle.Position =
+    UDim2.new(0, 20, 0, 172)
 
-statusLabel.Text = "Ready"
+presetTitle.BackgroundTransparency = 1
 
-statusLabel.Font = Enum.Font.GothamSemibold
-statusLabel.TextScaled = true
+presetTitle.Text =
+    "Quick Presets"
 
-statusLabel.TextColor3 =
-    Color3.fromRGB(180, 255, 190)
+presetTitle.Font =
+    Enum.Font.GothamSemibold
+
+presetTitle.TextScaled = true
+
+presetTitle.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+presetTitle.TextColor3 =
+    COLORS.SubText
+
+presetTitle.ZIndex = 7
+
+presetTitle.Parent = mainFrame
+
+local normalButton =
+    createButton(
+        mainFrame,
+        198,
+        "Normal  •  16"
+    )
+
+local fastButton =
+    createButton(
+        mainFrame,
+        238,
+        "Fast  •  32",
+        COLORS.Secondary
+    )
+
+local veryFastButton =
+    createButton(
+        mainFrame,
+        278,
+        "Very Fast  •  64",
+        COLORS.Secondary
+    )
+
+local applyButton =
+    createButton(
+        mainFrame,
+        318,
+        "✓  Apply",
+        COLORS.PrimaryDark
+    )
 
 --------------------------------------------------
--- SETTINGS FRAME
+-- SETTINGS BUTTON
 --------------------------------------------------
 
-local settingsFrame = Instance.new("Frame")
+local settingsButton =
+    createButton(
+        mainFrame,
+        358,
+        "⚙  Settings",
+        Color3.fromRGB(88, 67, 168)
+    )
 
-settingsFrame.Parent = gui
-settingsFrame.Size = UDim2.new(0, 300, 0, 245)
-settingsFrame.Position = mainFrame.Position
+--------------------------------------------------
+-- SETTINGS PANEL
+--------------------------------------------------
 
-settingsFrame.BackgroundColor3 = Color3.fromRGB(56, 44, 90)
-settingsFrame.BorderSizePixel = 0
+local settingsFrame =
+    createPanel(
+        "SettingsFrame",
+        UDim2.new(0, 315, 0, 330)
+    )
 
 settingsFrame.Visible = false
 
-makeCorner(settingsFrame, 14)
-makeStroke(
-    settingsFrame,
-    Color3.fromRGB(175, 145, 255),
-    0.25,
-    1.5
-)
+local settingsTitle =
+    Instance.new("TextLabel")
 
---------------------------------------------------
--- SETTINGS TITLE
---------------------------------------------------
+settingsTitle.Size =
+    UDim2.new(1, -40, 0, 32)
 
-local setTitle = Instance.new("TextLabel")
+settingsTitle.Position =
+    UDim2.new(0, 20, 0, 12)
 
-setTitle.Parent = settingsFrame
-setTitle.Size = UDim2.new(1, -30, 0, 34)
-setTitle.Position = UDim2.new(0, 15, 0, 12)
+settingsTitle.BackgroundTransparency = 1
 
-setTitle.BackgroundTransparency = 1
+settingsTitle.Text =
+    "⚙  Settings"
 
-setTitle.Text = "⚙  Settings"
+settingsTitle.Font =
+    Enum.Font.GothamBold
 
-setTitle.Font = Enum.Font.GothamBold
-setTitle.TextScaled = true
+settingsTitle.TextScaled = true
 
-setTitle.TextColor3 =
-    Color3.fromRGB(245, 244, 250)
+settingsTitle.TextColor3 =
+    COLORS.Text
 
---------------------------------------------------
--- SETTINGS SUBTITLE
---------------------------------------------------
+settingsTitle.ZIndex = 7
 
-local settingsSubtitle = Instance.new("TextLabel")
+settingsTitle.Parent = settingsFrame
 
-settingsSubtitle.Parent = settingsFrame
-settingsSubtitle.Size = UDim2.new(1, -40, 0, 20)
-settingsSubtitle.Position = UDim2.new(0, 20, 0, 45)
+local settingsSubtitle =
+    Instance.new("TextLabel")
+
+settingsSubtitle.Size =
+    UDim2.new(1, -40, 0, 20)
+
+settingsSubtitle.Position =
+    UDim2.new(0, 20, 0, 44)
 
 settingsSubtitle.BackgroundTransparency = 1
 
-settingsSubtitle.Text = "Customize your WalkSpeed behavior"
+settingsSubtitle.Text =
+    "Customize how WalkSpeed behaves"
 
-settingsSubtitle.Font = Enum.Font.Gotham
+settingsSubtitle.Font =
+    Enum.Font.Gotham
+
 settingsSubtitle.TextScaled = true
 
 settingsSubtitle.TextColor3 =
-    Color3.fromRGB(185, 177, 210)
+    COLORS.SubText
 
---------------------------------------------------
--- TOGGLE CREATOR
---------------------------------------------------
+settingsSubtitle.ZIndex = 7
 
-local function createToggleButton(parent, y, text)
+settingsSubtitle.Parent = settingsFrame
 
-    return createButton(
-        parent,
-        y,
-        text,
-        Color3.fromRGB(115, 90, 200)
-    )
-end
-
-local antiFlingBtn =
-    createToggleButton(
+local antiFlingButton =
+    createButton(
         settingsFrame,
-        70,
+        78,
         "Anti-Fling: ON"
     )
 
-local softLimitBtn =
-    createToggleButton(
+local softLimitButton =
+    createButton(
         settingsFrame,
-        110,
+        120,
         "Soft Limit: ON"
     )
 
-local resetBtn =
-    createToggleButton(
-        settingsFrame,
-        150,
-        "↺  Reset WalkSpeed"
-    )
-
-local backBtn =
+local smoothButton =
     createButton(
         settingsFrame,
-        190,
+        162,
+        "Smooth Speed: ON"
+    )
+
+local resetButton =
+    createButton(
+        settingsFrame,
+        204,
+        "↺  Reset Settings",
+        COLORS.Secondary
+    )
+
+local backButton =
+    createButton(
+        settingsFrame,
+        246,
         "←  Back",
-        Color3.fromRGB(100, 80, 190)
+        Color3.fromRGB(88, 67, 168)
     )
 
 --------------------------------------------------
--- FLOATING WS BUTTON
+-- FLOATING BUTTON
 --------------------------------------------------
 
-local toggleBtn = Instance.new("TextButton")
+local toggleButton =
+    Instance.new("TextButton")
 
-toggleBtn.Parent = gui
+toggleButton.Size =
+    UDim2.new(0, 64, 0, 34)
 
-toggleBtn.Size = UDim2.new(0, 62, 0, 32)
-toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.Position =
+    UDim2.new(0, 10, 0, 10)
 
-toggleBtn.BackgroundColor3 =
-    Color3.fromRGB(120, 90, 230)
+toggleButton.BackgroundColor3 =
+    COLORS.PrimaryDark
 
-toggleBtn.BorderSizePixel = 0
+toggleButton.BorderSizePixel = 0
 
-toggleBtn.Text = "WS"
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextScaled = true
+toggleButton.Text =
+    "WS"
 
-toggleBtn.TextColor3 =
-    Color3.fromRGB(245, 244, 250)
+toggleButton.Font =
+    Enum.Font.GothamBold
 
-toggleBtn.AutoButtonColor = false
+toggleButton.TextScaled = true
 
-makeCorner(toggleBtn, 9)
-makeStroke(
-    toggleBtn,
-    Color3.fromRGB(190, 165, 255),
-    0.45,
+toggleButton.TextColor3 =
+    COLORS.Text
+
+toggleButton.AutoButtonColor = false
+
+toggleButton.ZIndex = 30
+
+toggleButton.Parent = gui
+
+corner(toggleButton, 9)
+
+stroke(
+    toggleButton,
+    Color3.fromRGB(205, 185, 255),
+    0.35,
     1
 )
 
 --------------------------------------------------
--- GUI VISIBILITY
+-- STATUS FUNCTIONS
 --------------------------------------------------
 
+local function updateDisplay()
+
+    local current = 0
+
+    if humanoid then
+        current = humanoid.WalkSpeed
+    end
+
+    speedDisplay.Text =
+        string.format(
+            "%.1f  →  %.1f",
+            current,
+            currentTargetSpeed
+        )
+end
+
+local function setStatus(text, color)
+
+    statusLabel.Text =
+        "●  " .. text
+
+    statusLabel.TextColor3 =
+        color or COLORS.Success
+end
+
+--------------------------------------------------
+-- PANEL TRANSITIONS
+--------------------------------------------------
+
+local function showPanel(panel)
+
+    keyFrame.Visible = false
+    mainFrame.Visible = false
+    settingsFrame.Visible = false
+
+    panel.Visible = true
+
+    local scale =
+        panel:FindFirstChildOfClass("UIScale")
+
+    if scale then
+        scale.Scale = 0.96
+
+        tween(
+            scale,
+            {
+                Scale = 1
+            },
+            0.22
+        )
+    end
+end
+
 local function showKey()
+
+    guiOpen = true
 
     keyFrame.Visible = true
     mainFrame.Visible = false
@@ -621,346 +1396,539 @@ end
 
 local function showMain()
 
+    guiOpen = true
+
+    if not unlocked then
+        showKey()
+        return
+    end
+
     keyFrame.Visible = false
     mainFrame.Visible = true
     settingsFrame.Visible = false
 
+    updateDisplay()
 end
 
 local function showSettings()
 
+    if not unlocked then
+        showKey()
+        return
+    end
+
+    guiOpen = true
+
     keyFrame.Visible = false
     mainFrame.Visible = false
     settingsFrame.Visible = true
-
 end
 
-local function closeGui()
+local function closePanels()
 
     keyFrame.Visible = false
     mainFrame.Visible = false
     settingsFrame.Visible = false
-
 end
 
 --------------------------------------------------
--- OPEN / CLOSE BUTTON
---------------------------------------------------
-
-toggleBtn.Activated:Connect(function()
-
-    guiOpen = not guiOpen
-
-    if guiOpen then
-
-        if keyAccepted then
-            showMain()
-        else
-            showKey()
-        end
-
-    else
-
-        closeGui()
-
-    end
-end)
-
---------------------------------------------------
--- KEY VALIDATION
+-- KEY SYSTEM
 --------------------------------------------------
 
 local function unlock()
 
-    if keyBox.Text == KEY then
+    local entered =
+        keyBox.Text
 
-        keyAccepted = true
+    if entered == KEY then
 
-        keyFeedback.TextColor3 =
-            Color3.fromRGB(110, 255, 140)
+        unlocked = true
 
-        keyFeedback.Text = "✓ Key Accepted!"
+        keyStatus.Text =
+            "✓ Access granted"
 
-        task.wait(0.35)
+        keyStatus.TextColor3 =
+            COLORS.Success
 
-        if keyAccepted then
-            showMain()
-            guiOpen = true
-        end
+        notify(
+            "WalkSpeed unlocked!",
+            COLORS.Success
+        )
+
+        task.delay(
+            0.35,
+            function()
+
+                if unlocked then
+                    showMain()
+                end
+
+            end
+        )
 
     else
 
-        keyFeedback.TextColor3 =
-            Color3.fromRGB(255, 105, 105)
+        keyStatus.Text =
+            "× Incorrect key"
 
-        keyFeedback.Text = "× Incorrect Key"
+        keyStatus.TextColor3 =
+            COLORS.Error
 
         keyBox.Text = ""
 
+        notify(
+            "Incorrect access key.",
+            COLORS.Error
+        )
     end
 end
 
-submitBtn.Activated:Connect(unlock)
+connect(
+    unlockButton.Activated,
+    unlock
+)
 
-keyBox.FocusLost:Connect(function(enterPressed)
+connect(
+    keyBox.FocusLost,
+    function(enterPressed)
 
-    if enterPressed then
-        unlock()
+        if enterPressed then
+            unlock()
+        end
     end
-end)
+)
 
 --------------------------------------------------
--- SPEED VALIDATION
+-- SPEED INPUT
 --------------------------------------------------
 
-local function setStatus(text, color)
+local function parseSpeed()
 
-    statusLabel.Text = text
-    statusLabel.TextColor3 = color
+    local value =
+        tonumber(speedInput.Text)
 
-end
+    if not value then
 
-local function applySpeed()
-
-    local text = speedInput.Text
-
-    if text == "" then
-
-        setStatus(
-            "Enter a speed first.",
-            Color3.fromRGB(255, 170, 110)
+        notify(
+            "Enter a valid number.",
+            COLORS.Error
         )
 
-        return
+        return nil
     end
 
-    local number = tonumber(text)
+    if value <= 0 then
 
-    if not number then
-
-        setStatus(
-            "Invalid speed.",
-            Color3.fromRGB(255, 120, 120)
-        )
-
-        return
-    end
-
-    if number <= 0 then
-
-        setStatus(
+        notify(
             "Speed must be above 0.",
-            Color3.fromRGB(255, 120, 120)
+            COLORS.Error
         )
 
-        return
+        return nil
     end
 
     if softLimit then
 
-        number = math.clamp(
-            number,
-            1,
-            MAX_SAFE_SPEED
-        )
+        value =
+            math.clamp(
+                value,
+                MIN_SPEED,
+                MAX_SPEED
+            )
 
     end
 
-    currentTargetSpeed = number
-
-    speedInput.Text = tostring(number)
-
-    setStatus(
-        "Target speed: " .. tostring(number),
-        Color3.fromRGB(180, 255, 190)
-    )
+    return value
 end
 
 --------------------------------------------------
--- MAIN BUTTONS
+-- APPLY SPEED
 --------------------------------------------------
 
-applyBtn.Activated:Connect(function()
-    applySpeed()
-end)
+local function applySpeed()
 
-speedInput.FocusLost:Connect(function(enterPressed)
+    local speed =
+        parseSpeed()
 
-    if enterPressed then
-        applySpeed()
-    end
-end)
-
-removeBtn.Activated:Connect(function()
-
-    currentTargetSpeed = DEFAULT_SPEED
-
-    if humanoid then
-        humanoid.WalkSpeed = DEFAULT_SPEED
-    end
-
-    speedInput.Text = tostring(DEFAULT_SPEED)
-
-    setStatus(
-        "WalkSpeed reset.",
-        Color3.fromRGB(180, 255, 190)
-    )
-end)
-
---------------------------------------------------
--- SETTINGS NAVIGATION
---------------------------------------------------
-
-openSettingsBtn.Activated:Connect(function()
-
-    if not keyAccepted then
-        showKey()
+    if not speed then
         return
     end
 
-    showSettings()
+    previousTargetSpeed =
+        currentTargetSpeed
 
-end)
+    currentTargetSpeed =
+        speed
 
-backBtn.Activated:Connect(function()
+    speedInput.Text =
+        tostring(speed)
 
-    if keyAccepted then
-        showMain()
-    else
-        showKey()
+    setSliderSpeed(speed)
+
+    setStatus(
+        "Speed active",
+        COLORS.Success
+    )
+
+    notify(
+        "Target speed set to " ..
+        tostring(speed),
+        COLORS.Success
+    )
+
+end
+
+connect(
+    applyButton.Activated,
+    applySpeed
+)
+
+connect(
+    speedInput.FocusLost,
+    function(enterPressed)
+
+        if enterPressed then
+            applySpeed()
+        end
     end
+)
 
-end)
+--------------------------------------------------
+-- PRESETS
+--------------------------------------------------
+
+local function usePreset(name, speed)
+
+    selectedPreset = name
+
+    currentTargetSpeed =
+        speed
+
+    speedInput.Text =
+        tostring(speed)
+
+    setSliderSpeed(speed)
+
+    setStatus(
+        name .. " preset selected",
+        COLORS.Success
+    )
+
+    notify(
+        name .. " preset: " ..
+        tostring(speed),
+        COLORS.Primary
+    )
+end
+
+connect(
+    normalButton.Activated,
+    function()
+        usePreset("Normal", 16)
+    end
+)
+
+connect(
+    fastButton.Activated,
+    function()
+        usePreset("Fast", 32)
+    end
+)
+
+connect(
+    veryFastButton.Activated,
+    function()
+        usePreset("Very Fast", 64)
+    end
+)
+
+--------------------------------------------------
+-- SETTINGS
+--------------------------------------------------
+
+connect(
+    settingsButton.Activated,
+    showSettings
+)
+
+connect(
+    backButton.Activated,
+    showMain
+)
 
 --------------------------------------------------
 -- ANTI-FLING
 --------------------------------------------------
 
-antiFlingBtn.Activated:Connect(function()
+connect(
+    antiFlingButton.Activated,
+    function()
 
-    antiFling = not antiFling
+        antiFling =
+            not antiFling
 
-    antiFlingBtn.Text =
-        "Anti-Fling: " ..
-        (antiFling and "ON" or "OFF")
+        antiFlingButton.Text =
+            "Anti-Fling: " ..
+            (antiFling and "ON" or "OFF")
 
-end)
+        notify(
+            "Anti-Fling " ..
+            (antiFling and "enabled" or "disabled"),
+            COLORS.Primary
+        )
+    end
+)
 
 --------------------------------------------------
 -- SOFT LIMIT
 --------------------------------------------------
 
-softLimitBtn.Activated:Connect(function()
+connect(
+    softLimitButton.Activated,
+    function()
 
-    softLimit = not softLimit
+        softLimit =
+            not softLimit
 
-    softLimitBtn.Text =
-        "Soft Limit: " ..
-        (softLimit and "ON" or "OFF")
+        softLimitButton.Text =
+            "Soft Limit: " ..
+            (softLimit and "ON" or "OFF")
 
-end)
+        notify(
+            "Soft Limit " ..
+            (softLimit and "enabled" or "disabled"),
+            COLORS.Primary
+        )
+    end
+)
+
+--------------------------------------------------
+-- SMOOTH SPEED
+--------------------------------------------------
+
+connect(
+    smoothButton.Activated,
+    function()
+
+        smoothSpeed =
+            not smoothSpeed
+
+        smoothButton.Text =
+            "Smooth Speed: " ..
+            (smoothSpeed and "ON" or "OFF")
+
+        notify(
+            "Smooth Speed " ..
+            (smoothSpeed and "enabled" or "disabled"),
+            COLORS.Primary
+        )
+    end
+)
 
 --------------------------------------------------
 -- RESET SETTINGS
 --------------------------------------------------
 
-resetBtn.Activated:Connect(function()
+connect(
+    resetButton.Activated,
+    function()
 
-    currentTargetSpeed = DEFAULT_SPEED
+        antiFling = true
+        softLimit = true
+        smoothSpeed = true
 
-    if humanoid then
-        humanoid.WalkSpeed = DEFAULT_SPEED
-    end
+        currentTargetSpeed =
+            DEFAULT_SPEED
 
-    speedInput.Text = tostring(DEFAULT_SPEED)
+        previousTargetSpeed =
+            DEFAULT_SPEED
 
-    setStatus(
-        "WalkSpeed reset.",
-        Color3.fromRGB(180, 255, 190)
-    )
+        selectedPreset =
+            "Normal"
 
-end)
+        antiFlingButton.Text =
+            "Anti-Fling: ON"
 
---------------------------------------------------
--- WALK SPEED LOOP
---------------------------------------------------
+        softLimitButton.Text =
+            "Soft Limit: ON"
 
-RunService.Heartbeat:Connect(function(dt)
+        smoothButton.Text =
+            "Smooth Speed: ON"
 
-    if not keyAccepted then
-        return
-    end
+        speedInput.Text =
+            tostring(DEFAULT_SPEED)
 
-    if not humanoid then
-        return
-    end
+        setSliderSpeed(DEFAULT_SPEED)
 
-    if humanoid.Health <= 0 then
-        return
-    end
+        if humanoid then
+            humanoid.WalkSpeed =
+                DEFAULT_SPEED
+        end
 
-    --------------------------------------------------
-    -- SMOOTH SPEED
-    --------------------------------------------------
-
-    local currentSpeed = humanoid.WalkSpeed
-
-    local difference =
-        currentTargetSpeed - currentSpeed
-
-    local step =
-        difference *
-        math.clamp(
-            dt * smoothingFactor,
-            0,
-            1
+        setStatus(
+            "Settings reset",
+            COLORS.Success
         )
 
-    humanoid.WalkSpeed =
-        currentSpeed + step
+        notify(
+            "All settings reset.",
+            COLORS.Success
+        )
+    end
+)
 
-    --------------------------------------------------
-    -- ANTI-FLING
-    --------------------------------------------------
+--------------------------------------------------
+-- FLOATING BUTTON
+--------------------------------------------------
 
-    if antiFling then
+connect(
+    toggleButton.Activated,
+    function()
 
-        local character = player.Character
+        if guiOpen then
 
-        if character then
+            guiOpen = false
 
-            local root =
-                character:FindFirstChild("HumanoidRootPart")
+            closePanels()
 
-            if root then
+        else
 
-                local velocity =
-                    root.AssemblyLinearVelocity
+            guiOpen = true
 
-                if velocity.Magnitude > 200 then
-
-                    humanoid.WalkSpeed =
-                        math.min(
-                            humanoid.WalkSpeed,
-                            DEFAULT_SPEED
-                        )
-                end
+            if unlocked then
+                showMain()
+            else
+                showKey()
             end
+
         end
     end
+)
 
-    --------------------------------------------------
-    -- UPDATE DISPLAY
-    --------------------------------------------------
+--------------------------------------------------
+-- ANTI-FLING
+--------------------------------------------------
 
-    currentSpeedLabel.Text =
-        string.format(
-            "Current: %.1f   •   Target: %.1f",
-            humanoid.WalkSpeed,
+local lastFlingTime = 0
+
+local function handleAntiFling()
+
+    if not antiFling then
+        return
+    end
+
+    if not rootPart or not humanoid then
+        return
+    end
+
+    local velocity =
+        rootPart.AssemblyLinearVelocity
+
+    local magnitude =
+        velocity.Magnitude
+
+    if magnitude > 200 then
+
+        local now =
+            os.clock()
+
+        if now - lastFlingTime > 0.25 then
+
+            lastFlingTime = now
+
+            humanoid.WalkSpeed =
+                math.min(
+                    humanoid.WalkSpeed,
+                    DEFAULT_SPEED
+                )
+
+        end
+    end
+end
+
+--------------------------------------------------
+-- MAIN LOOP
+--------------------------------------------------
+
+connect(
+    RunService.Heartbeat,
+    function(dt)
+
+        if not unlocked then
+            return
+        end
+
+        if not humanoid then
+            return
+        end
+
+        if humanoid.Health <= 0 then
+            return
+        end
+
+        --------------------------------------------------
+        -- TARGET SPEED
+        --------------------------------------------------
+
+        local target =
             currentTargetSpeed
-        )
 
-end)
+        if softLimit then
+
+            target =
+                math.clamp(
+                    target,
+                    MIN_SPEED,
+                    MAX_SPEED
+                )
+
+        end
+
+        --------------------------------------------------
+        -- SPEED APPLICATION
+        --------------------------------------------------
+
+        if smoothSpeed then
+
+            local current =
+                humanoid.WalkSpeed
+
+            local difference =
+                target - current
+
+            local alpha =
+                math.clamp(
+                    dt * SMOOTHING,
+                    0,
+                    1
+                )
+
+            humanoid.WalkSpeed =
+                current +
+                (difference * alpha)
+
+        else
+
+            humanoid.WalkSpeed =
+                target
+
+        end
+
+        --------------------------------------------------
+        -- ANTI FLING
+        --------------------------------------------------
+
+        handleAntiFling()
+
+        --------------------------------------------------
+        -- DISPLAY
+        --------------------------------------------------
+
+        if mainFrame.Visible then
+            updateDisplay()
+        end
+    end
+)
 
 --------------------------------------------------
 -- INITIAL STATE
@@ -970,8 +1938,28 @@ keyFrame.Visible = true
 mainFrame.Visible = false
 settingsFrame.Visible = false
 
-speedInput.Text = tostring(DEFAULT_SPEED)
+speedInput.Text =
+    tostring(DEFAULT_SPEED)
 
-toggleBtn.Visible = true
+setSliderSpeed(
+    DEFAULT_SPEED
+)
 
-print("Cute WalkSpeed GUI loaded.")
+setStatus(
+    "Ready",
+    COLORS.Success
+)
+
+--------------------------------------------------
+-- FINAL
+--------------------------------------------------
+
+notify(
+    "WalkSpeed GUI loaded.",
+    COLORS.Primary,
+    2
+)
+
+print(
+    "[CuteWSGuiV2] Loaded successfully."
+)
