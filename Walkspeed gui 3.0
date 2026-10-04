@@ -2,7 +2,7 @@
 -- CONFIG
 --------------------------------------------------
 
-local KEY = "WC$552"
+local KEY = "cherri"
 
 local DEFAULT_SPEED = 16
 local MIN_SPEED = 1
