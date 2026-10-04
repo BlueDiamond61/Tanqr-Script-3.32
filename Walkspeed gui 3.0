@@ -1,7 +1,3 @@
--- Cute WalkSpeed GUI - Improved
--- Mobile + PC Support
--- Key System + Settings + Smooth Speed
-
 local KEY = "WC$552"
 
 local DEFAULT_SPEED = 16
